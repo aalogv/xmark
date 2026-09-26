@@ -80,7 +80,7 @@ FOOTER_NEW = esc('''<footer style="background: #F5F5F7; border-top: 1px solid rg
           <span style="font-weight: 600; color: #1D1D1F">Продукт</span>
           <a href="#how" style="color: #48484C" style-hover="color: #2C67F2">Как работает</a>
           <a href="#deploy" style="color: #48484C" style-hover="color: #2C67F2">Внедрение</a>
-          <a href="https://xmark-demo.k3s.dex-it.ru" target="_blank" rel="noopener" style="color: #48484C" style-hover="color: #2C67F2">Демо-стенд</a>
+          <a href="https://xmark2.oplot-it.ru:8080" target="_blank" rel="noopener" style="color: #48484C" style-hover="color: #2C67F2">Демо-стенд</a>
         </div>
         <div style="display: flex; flex-direction: column; gap: 8px">
           <span style="font-weight: 600; color: #1D1D1F">Документы</span>
