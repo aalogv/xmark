@@ -10,7 +10,11 @@
   5. секция «Цены»: ссылка на порядок определения стоимости;
   6. подпись под формой: ссылка на политику обработки ПДн;
   7. список Linux в «Внедрении»: без RHEL, с Альт;
-  8. шаг «Установка драйвера» → «Установка агента».
+  8. шаг «Установка драйвера» → «Установка агента»;
+  9. мокапы: время без секунд, «Владелец» → «Пользователь»;
+ 10. тексты о результате: компьютер, пользователь и время, а не «ID в метке»;
+ 11. hero-стат: «минимальная нагрузка» вместо «< 1 % CPU»;
+ 12. отрасли: «ОПК» вместо «Оборонки».
 
 Скрипт идемпотентен: если правка уже применена — пропускает её. Если целевой фрагмент
 не найден ровно один раз (и правка ещё не применена) — падает, ничего не записав.
@@ -65,6 +69,31 @@ OS_NEW = "detail: 'Astra Linux SE, РЕД ОС, Альт, Ubuntu, Debian'"
 
 INSTALL_OLD = "title: 'Установка драйвера'"
 INSTALL_NEW = "title: 'Установка агента'"
+
+HERO_TIME_OLD = "'16.09.2026 14:32:07'"
+HERO_TIME_NEW = "'16.09.2026 14:32'"
+PANEL_TIME_OLD = "'16.09.2026, 14:32:07'"
+PANEL_TIME_NEW = "'16.09.2026, 14:32'"
+
+# подписи мокапа выровнены пробелами под моноширинный шрифт
+PANEL_PC_OLD = "'Компьютер: '"
+PANEL_PC_NEW = "'Компьютер:    '"
+PANEL_USER_OLD = "'Владелец:  '), e('span', { style: { color: '#F5F5F7' } }, 'Отдел аналитики')"
+PANEL_USER_NEW = "'Пользователь: '), e('span', { style: { color: '#F5F5F7' } }, 'a.petrova')"
+PANEL_SHOT_OLD = "'Снято:     '"
+PANEL_SHOT_NEW = "'Снято:        '"
+
+STEP_OLD = "'Драйвер подмешивает в вывод на монитор стойкую метку с ID компьютера и точным временем.'"
+STEP_NEW = "'Драйвер подмешивает в вывод на монитор стойкую метку, невидимую для глаза.'"
+
+QUOTE_OLD = esc('Из любого снимка извлекаются идентификатор компьютера и точное время отображения.')
+QUOTE_NEW = esc('По любому снимку устанавливаются компьютер, пользователь и время, когда изображение было на экране.')
+
+LOAD_OLD = esc('&lt; 1%</div><div style="font-size: 15px; color: #48484C; margin-top: 6px">нагрузка на CPU</div>')
+LOAD_NEW = esc('Минимальная</div><div style="font-size: 15px; color: #48484C; margin-top: 6px">нагрузка на рабочую станцию</div>')
+
+OPK_OLD = "name: 'Оборонка и промышленность'"
+OPK_NEW = "name: 'ОПК и промышленность'"
 
 FOOTER_START = esc('<footer style="background: #F5F5F7; border-top: 1px solid rgba(0,0,0,0.08)">')
 FOOTER_END = esc('</footer>')
@@ -164,6 +193,23 @@ def main() -> None:
 
     # 8. шаг «Как работает»: ставится агент (драйвер — его часть), как и в тексте шага
     out = replace_once(out, INSTALL_OLD, INSTALL_NEW, "how: «Установка агента»", done_marker=INSTALL_NEW)
+
+    # 9. мокапы: время до минуты, в панели — пользователь, а не подразделение
+    out = replace_once(out, HERO_TIME_OLD, HERO_TIME_NEW, "hero: время без секунд", done_marker=HERO_TIME_NEW)
+    out = replace_once(out, PANEL_TIME_OLD, PANEL_TIME_NEW, "panel: время без секунд", done_marker=PANEL_TIME_NEW)
+    out = replace_once(out, PANEL_PC_OLD, PANEL_PC_NEW, "panel: подпись «Компьютер»", done_marker=PANEL_PC_NEW)
+    out = replace_once(out, PANEL_USER_OLD, PANEL_USER_NEW, "panel: «Пользователь»", done_marker=PANEL_USER_NEW)
+    out = replace_once(out, PANEL_SHOT_OLD, PANEL_SHOT_NEW, "panel: подпись «Снято»", done_marker=PANEL_SHOT_NEW)
+
+    # 10. метка несёт одноразовый идентификатор показа, а не ID компьютера и время
+    out = replace_once(out, STEP_OLD, STEP_NEW, "how: «Невидимый сигнал»", done_marker=STEP_NEW)
+    out = replace_once(out, QUOTE_OLD, QUOTE_NEW, "цитата о результате", done_marker=QUOTE_NEW)
+
+    # 11. нагрузку в процентах не замеряли
+    out = replace_once(out, LOAD_OLD, LOAD_NEW, "hero: нагрузка", done_marker=LOAD_NEW)
+
+    # 12. отрасли
+    out = replace_once(out, OPK_OLD, OPK_NEW, "отрасли: ОПК", done_marker=OPK_NEW)
 
     if out == src:
         print("Изменений нет.")
