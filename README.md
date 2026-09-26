@@ -26,6 +26,7 @@ docs/pdf/             PDF-версии документов (генерирую�
 assets/site.css       общие стили статических страниц
 scripts/patch-landing.py  точечные правки лендинга (идемпотентен)
 scripts/build-pdf.sh      генерация PDF через headless Chrome
+scripts/regru-dns.sh      DNS у reg.ru через REG.API v2 (list / switch-to-pages / check)
 CNAME                 домен для GitHub Pages
 ```
 
@@ -106,6 +107,16 @@ DNS у reg.ru (ns1/ns2.reg.ru). В зоне `oplot-it.ru` сейчас есть 
 5. GitHub → репозиторий → Settings → Pages: дождаться «DNS check successful», включить **Enforce HTTPS** (сертификат Let's Encrypt выпускается автоматически, до часа).
 
 Проверка после переключения: `curl -sI https://xmark.oplot-it.ru/docs/ | head -1` → `HTTP/2 200`.
+
+То же через REG.API v2 (`scripts/regru-dns.sh`, учётные данные только в переменных окружения):
+
+```bash
+# один раз: reg.ru → Настройки → Безопасность → API — разрешить доступ, добавить свой IP
+export REGRU_USER='логин' REGRU_PASS='пароль или альтернативный пароль API'
+scripts/regru-dns.sh list              # посмотреть зону
+scripts/regru-dns.sh switch-to-pages   # удалить A xmark, добавить CNAME → aalogv.github.io
+scripts/regru-dns.sh check             # dig + HTTPS
+```
 
 ## Вне репозитория
 
