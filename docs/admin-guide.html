@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Руководство администратора — Оплот.X-Mark</title>
+  <link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+
+<header class="site-header">
+  <nav>
+    <a class="brand" href="../">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#2C67F2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+      Оплот.X-Mark
+    </a>
+    <div class="links">
+      <a href="../">Продукт</a>
+      <a href="./" class="active">Документация</a>
+      <a href="../price.html">Стоимость</a>
+      <a href="../company.html">О правообладателе</a>
+    </div>
+  </nav>
+</header>
+
+<main class="page">
+  <div class="doc-title">
+    <div class="eyebrow">Оплот.X-Mark · Документ 5 из 6</div>
+    <h1>Руководство администратора</h1>
+    <div class="meta"><span>Версия ПО 1.0</span><span>Правообладатель: ООО «ОПЛОТ-ИТ»</span><span>Редакция: сентябрь 2026</span></div>
+  </div>
+
+  <div class="toc">
+    <strong>Содержание</strong>
+    <ol>
+      <li><a href="#config">Конфигурация сервера</a></li>
+      <li><a href="#users">Пользователи, роли, аутентификация</a></li>
+      <li><a href="#groups">Группы и политики маркировки</a></li>
+      <li><a href="#directory">Интеграция с каталогом</a></li>
+      <li><a href="#siem">Выгрузка событий в SIEM</a></li>
+      <li><a href="#api">REST API</a></li>
+      <li><a href="#backup">Резервное копирование и восстановление</a></li>
+      <li><a href="#monitoring">Мониторинг и журналы</a></li>
+      <li><a href="#troubleshooting">Диагностика неисправностей</a></li>
+      <li><a href="#codes">Коды возврата инсталлятора</a></li>
+    </ol>
+  </div>
+
+  <h2 id="config">1. Конфигурация сервера</h2>
+  <p>Основной файл конфигурации — <code>/etc/xmark/server.yaml</code> (в контейнерном варианте — переменные окружения в <code>.env</code> с теми же именами в верхнем регистре и префиксом <code>XMARK_</code>). После изменения выполните <code>sudo systemctl restart xmark-server</code>.</p>
+<pre><code>server:
+  host: xmark.corp.local
+  listen: 0.0.0.0:443
+  tls:
+    cert: /etc/xmark/tls/server.crt
+    key:  /etc/xmark/tls/server.key
+database:
+  dsn: postgres://xmark:***@127.0.0.1:5432/xmark?sslmode=disable
+agents:
+  heartbeat_interval: 60s      # период отправки состояния агентом
+  offline_threshold: 24h       # порог статуса «Нет связи»
+analysis:
+  snapshot_retention: 365d     # срок хранения загруженных снимков
+  max_upload_mb: 50
+session:
+  idle_timeout: 30m
+  password_policy: { min_length: 12, require_digits: true, require_mixed_case: true }
+time:
+  timezone: Europe/Moscow</code></pre>
+  <p>Проверить конфигурацию без перезапуска: <code>sudo xmark-server check-config</code>.</p>
+  <h3>1.1. TLS-сертификат</h3>
+  <p>Рекомендуется сертификат внутреннего удостоверяющего центра организации. Корневой сертификат УЦ должен быть установлен на рабочих станциях (стандартными средствами ОС) либо передан агенту параметром <code>CA_CERT</code> при установке. Самоподписанный сертификат допустим для пилота.</p>
+
+  <h2 id="users">2. Пользователи, роли, аутентификация</h2>
+  <p>Раздел <strong>Настройки → Пользователи</strong>. Роли: Администратор, Оператор экспертизы, Наблюдатель (описание — в <a href="user-guide.html#intro">руководстве пользователя</a>).</p>
+  <ul>
+    <li><strong>Локальные учётные записи:</strong> создание, сброс пароля, блокировка. Действует парольная политика из конфигурации.</li>
+    <li><strong>Доменная аутентификация (LDAP / Active Directory / ALD Pro):</strong> <strong>Настройки → Аутентификация</strong> — адрес сервера, базовый DN, учётная запись для чтения, сопоставление групп домена ролям панели. Пользователи домена входят своими учётными данными; локальный администратор сохраняется как аварийный.</li>
+    <li>Все входы и действия фиксируются в журнале аудита.</li>
+  </ul>
+
+  <h2 id="groups">3. Группы и политики маркировки</h2>
+  <p>Раздел <strong>Рабочие станции → Группы</strong>. Для каждой группы задаются:</p>
+  <ul>
+    <li><strong>Интенсивность метки</strong> — стандартная (по умолчанию) или усиленная для помещений с ожидаемой фотосъёмкой под большим углом (усиленная интенсивность остаётся незаметной для глаза, но повышает стойкость при пересъёмке);</li>
+    <li><strong>Защита от удаления</strong> — требовать код деинсталляции;</li>
+    <li><strong>Порог «Нет связи»</strong> — переопределение глобального значения (например, для ноутбуков выездных сотрудников);</li>
+    <li><strong>Автообновление агентов</strong> — разрешить обновление по команде из панели.</li>
+  </ul>
+  <p>Изменение политики применяется агентами при следующем heartbeat (по умолчанию в течение минуты).</p>
+
+  <h2 id="directory">4. Интеграция с каталогом</h2>
+  <p><strong>Настройки → Каталог</strong>. Панель периодически (по умолчанию раз в час) читает из LDAP-каталога компьютеры и пользователей и сопоставляет их с зарегистрированными агентами по имени компьютера. Так в карточке станции автоматически появляются подразделение и ответственный пользователь. Поддерживаются Microsoft Active Directory, ALD Pro, Samba DC, FreeIPA. Возможен импорт из CSV (<code>hostname;department;owner</code>).</p>
+
+  <h2 id="siem">5. Выгрузка событий в SIEM</h2>
+  <p><strong>Настройки → Интеграции → Syslog</strong>: адрес приёмника, протокол (UDP / TCP / TLS), формат (CEF или JSON). Передаются события: регистрация и потеря связи агента, отключение маркировки, попытка вмешательства, выполненный анализ с результатом, действия администраторов. Пример события CEF:</p>
+<pre><code>CEF:0|Oplot|XMark|1.0|ANALYSIS_MATCH|Метка обнаружена|5|
+  src=WKS-0417-MSK cs1=Отдел аналитики rt=1758025927000 suser=operator1 cn1=98</code></pre>
+
+  <h2 id="api">6. REST API</h2>
+  <p>API доступен по адресу <code>https://&lt;панель&gt;/api/v1/</code>, аутентификация — токен API (<strong>Настройки → API-токены</strong>), передаётся в заголовке <code>Authorization: Bearer &lt;токен&gt;</code>. Основные методы:</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Метод</th><th>Назначение</th></tr></thead>
+      <tbody>
+        <tr><td><code>GET /workstations</code></td><td>Список рабочих станций с фильтрами</td></tr>
+        <tr><td><code>GET /workstations/{id}</code></td><td>Карточка станции и события</td></tr>
+        <tr><td><code>POST /analysis</code></td><td>Загрузка снимка (multipart) и запуск анализа</td></tr>
+        <tr><td><code>GET /analysis/{id}</code></td><td>Результат анализа</td></tr>
+        <tr><td><code>GET /analysis/{id}/report</code></td><td>Отчёт PDF</td></tr>
+        <tr><td><code>POST /enroll-tokens</code></td><td>Создание токена развёртывания</td></tr>
+        <tr><td><code>GET /health</code></td><td>Состояние сервера (для мониторинга)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Полная спецификация OpenAPI доступна в панели: <strong>Настройки → API → Спецификация</strong>.</p>
+
+  <h2 id="backup">7. Резервное копирование и восстановление</h2>
+  <p>Резервному копированию подлежат: база данных PostgreSQL, каталог снимков <code>/var/lib/xmark/snapshots</code>, конфигурация <code>/etc/xmark/</code> (включая TLS-ключи и файл лицензии).</p>
+<pre><code># Резервная копия (встроенная команда: дамп БД + файлы в один архив)
+sudo xmark-server backup /backup/xmark-$(date +%F).tar.gz
+
+# Восстановление на чистом сервере после установки пакета
+sudo xmark-server restore /backup/xmark-2026-09-16.tar.gz
+sudo systemctl restart xmark-server</code></pre>
+  <p>Рекомендуемая периодичность — ежедневно; команду можно поставить в cron. Критично сохранить БД: в ней хранятся идентификаторы рабочих станций и ключи маркировки — без них снимки, сделанные до потери базы, не могут быть сопоставлены с компьютерами.</p>
+
+  <h2 id="monitoring">8. Мониторинг и журналы</h2>
+  <ul>
+    <li>Состояние сервера: <code>GET /api/v1/health</code> (200 — исправен), метрики Prometheus на <code>/metrics</code> (число агентов по статусам, очередь анализа, время отклика).</li>
+    <li>Журналы сервера: <code>journalctl -u xmark-server</code> или <code>/var/log/xmark/server.log</code>; уровень задаётся ключом <code>log.level</code> (info / debug).</li>
+    <li>Журналы агента: Windows — <code>%ProgramData%\Oplot\XMark\agent.log</code> и журнал приложений Windows (источник XMarkAgent); Linux — <code>journalctl -u xmark-agent</code>.</li>
+    <li>Журнал аудита панели: <strong>Настройки → Журнал аудита</strong>, экспорт в CSV.</li>
+  </ul>
+
+  <h2 id="troubleshooting">9. Диагностика неисправностей</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Симптом</th><th>Причина</th><th>Действие</th></tr></thead>
+      <tbody>
+        <tr><td>Агент установлен, но не появляется в панели</td><td>Нет сети до сервера / не доверен сертификат / неверный токен</td><td><code>xmark-agent status</code>, проверить <code>curl -v https://&lt;панель&gt;/api/v1/health</code> со станции, проверить журнал агента, при необходимости повторить <code>xmark-agent enroll</code></td></tr>
+        <tr><td>Статус «Маркировка отключена»</td><td>Драйвер не загружен (обновление ОС/ядра, несовместимый видеодрайвер)</td><td>Linux: <code>dkms status</code>, пересобрать модуль; Windows: проверить подпись драйвера в диспетчере устройств; перезапустить службу</td></tr>
+        <tr><td>Статус «Без лицензии»</td><td>Превышено число рабочих мест или истёк срок</td><td><strong>Настройки → Лицензия</strong>; удалить неиспользуемые станции или расширить лицензию</td></tr>
+        <tr><td>Снимок со станции не декодируется</td><td>Агент на момент снимка не работал; сильное искажение</td><td>Проверить журнал станции за указанное время; повторить с исходным файлом</td></tr>
+        <tr><td>Время в результатах смещено</td><td>Рассинхронизация часов сервера</td><td>Настроить NTP на сервере панели (<code>timedatectl</code>), проверить <code>time.timezone</code></td></tr>
+        <tr><td>Панель недоступна, 502</td><td>Служба остановлена / СУБД недоступна</td><td><code>systemctl status xmark-server</code>, <code>journalctl -u xmark-server -n 200</code>, проверить доступность PostgreSQL</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Для обращения в поддержку соберите диагностический архив: <code>sudo xmark-server support-bundle</code> (сервер) или <code>xmark-agent support-bundle</code> (станция) — журналы, конфигурация без секретов, версии компонентов.</p>
+
+  <h2 id="codes">10. Коды возврата инсталлятора</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Код</th><th>Значение</th></tr></thead>
+      <tbody>
+        <tr><td>0</td><td>Успешно</td></tr>
+        <tr><td>1602 / 1603</td><td>Установка отменена / общая ошибка MSI — см. журнал <code>/l*v</code></td></tr>
+        <tr><td>3010</td><td>Успешно, требуется перезагрузка (только при обновлении драйвера)</td></tr>
+        <tr><td>10</td><td>Не указан <code>SERVER_URL</code> или <code>ENROLL_TOKEN</code></td></tr>
+        <tr><td>11</td><td>Сервер недоступен при регистрации (агент установлен, регистрация будет повторяться автоматически)</td></tr>
+        <tr><td>12</td><td>Токен недействителен или отозван</td></tr>
+        <tr><td>13</td><td>ОС или ядро не поддерживаются</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="doc-footer">
+    Оплот.X-Mark · Руководство администратора · ООО «ОПЛОТ-ИТ», 2026 ·
+    <a href="./">Все документы</a> · <a href="pdf/xmark-admin-guide.pdf">Скачать PDF</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="inner">
+    <div class="cols">
+      <div class="req">
+        <h5>Правообладатель</h5>
+        ООО «ОПЛОТ-ИТ»<br>
+        ИНН 9705227487 · ОГРН 1247700465902<br>
+        ОКВЭД 62.02<br>
+        115054, г. Москва, ул. Большая Пионерская, д. 15, стр. 1, помещ. 1/1
+      </div>
+      <div>
+        <h5>Продукт</h5>
+        <a href="../">Описание</a>
+        <a href="./">Документация</a>
+        <a href="../price.html">Стоимость</a>
+        <a href="https://xmark-demo.k3s.dex-it.ru" target="_blank" rel="noopener">Демо-стенд</a>
+      </div>
+      <div>
+        <h5>Контакты</h5>
+        <a href="tel:+74993481107">+7 (499) 348-11-07</a>
+        <a href="mailto:office@oplot-it.ru">office@oplot-it.ru</a>
+        <a href="../company.html">О правообладателе</a>
+        <a href="../privacy.html">Политика ПДн</a>
+      </div>
+    </div>
+    <div class="bottom">
+      <span>© 2026 ООО «ОПЛОТ-ИТ». Все права защищены.</span>
+      <span>Информация доступна без регистрации и авторизации.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Руководство по установке — Оплот.X-Mark</title>
+  <link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+
+<header class="site-header">
+  <nav>
+    <a class="brand" href="../">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#2C67F2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+      Оплот.X-Mark
+    </a>
+    <div class="links">
+      <a href="../">Продукт</a>
+      <a href="./" class="active">Документация</a>
+      <a href="../price.html">Стоимость</a>
+      <a href="../company.html">О правообладателе</a>
+    </div>
+  </nav>
+</header>
+
+<main class="page">
+  <div class="doc-title">
+    <div class="eyebrow">Оплот.X-Mark · Документ 3 из 6</div>
+    <h1>Руководство по установке</h1>
+    <div class="meta"><span>Версия ПО 1.0</span><span>Правообладатель: ООО «ОПЛОТ-ИТ»</span><span>Редакция: сентябрь 2026</span></div>
+  </div>
+
+  <div class="toc">
+    <strong>Содержание</strong>
+    <ol>
+      <li><a href="#overview">Порядок развёртывания</a></li>
+      <li><a href="#dist">Состав дистрибутива</a></li>
+      <li><a href="#server">Установка сервера панели управления</a></li>
+      <li><a href="#license">Активация лицензии</a></li>
+      <li><a href="#token">Токен развёртывания агентов</a></li>
+      <li><a href="#win">Установка агента на Windows</a></li>
+      <li><a href="#linux">Установка агента на Linux</a></li>
+      <li><a href="#mass">Централизованная установка</a></li>
+      <li><a href="#verify">Проверка работоспособности</a></li>
+      <li><a href="#upgrade">Обновление и удаление</a></li>
+      <li><a href="#support">Контакты технических специалистов</a></li>
+    </ol>
+  </div>
+
+  <h2 id="overview">1. Порядок развёртывания</h2>
+  <ol>
+    <li>Убедиться, что инфраструктура соответствует <a href="requirements.html">системным требованиям</a>.</li>
+    <li>Установить сервер панели управления и СУБД.</li>
+    <li>Активировать лицензию.</li>
+    <li>Создать токен развёртывания.</li>
+    <li>Установить агенты на рабочие станции — вручную на пилотной группе, затем централизованно.</li>
+    <li>Проверить статус агентов в панели и провести контрольный анализ снимка.</li>
+  </ol>
+  <p>Пилотное развёртывание на 10–20 рабочих станциях рекомендуется перед массовой установкой.</p>
+
+  <h2 id="dist">2. Состав дистрибутива</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Файл</th><th>Назначение</th></tr></thead>
+      <tbody>
+        <tr><td><code>xmark-server-1.0.x.tar.gz</code></td><td>Сервер панели управления: образы контейнеров, <code>docker-compose.yml</code>, скрипт установки</td></tr>
+        <tr><td><code>xmark-server_1.0.x_amd64.deb</code>, <code>xmark-server-1.0.x.x86_64.rpm</code></td><td>Сервер панели управления — нативные пакеты для Astra Linux / Debian / Ubuntu и РЕД ОС</td></tr>
+        <tr><td><code>xmark-agent-1.0.x-x64.msi</code></td><td>Агент для Windows</td></tr>
+        <tr><td><code>xmark-agent_1.0.x_amd64.deb</code></td><td>Агент для Astra Linux, Debian, Ubuntu</td></tr>
+        <tr><td><code>xmark-agent-1.0.x.x86_64.rpm</code></td><td>Агент для РЕД ОС</td></tr>
+        <tr><td><code>ansible/</code></td><td>Плейбуки и роли для массовой установки на Linux</td></tr>
+        <tr><td><code>SHA256SUMS</code>, <code>SHA256SUMS.sig</code></td><td>Контрольные суммы и подпись дистрибутива</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Дистрибутив передаётся заказчику по защищённой ссылке после заключения договора (или тестовой лицензии на пилот). Перед установкой проверьте контрольные суммы: <code>sha256sum -c SHA256SUMS</code>.</p>
+
+  <h2 id="server">3. Установка сервера панели управления</h2>
+  <h3>3.1. Вариант A — пакет DEB/RPM (рекомендуется для Astra Linux и РЕД ОС)</h3>
+<pre><code># Astra Linux / Debian / Ubuntu
+sudo apt install ./xmark-server_1.0.x_amd64.deb
+
+# РЕД ОС
+sudo dnf install ./xmark-server-1.0.x.x86_64.rpm</code></pre>
+  <p>Пакет устанавливает службу <code>xmark-server</code>, локальный экземпляр PostgreSQL (если не отключено) и мастер первичной настройки. Запустите его:</p>
+<pre><code>sudo xmark-server setup
+# Мастер запросит:
+#  - доменное имя панели (например, xmark.corp.local)
+#  - TLS-сертификат и ключ (или создаст самоподписанный)
+#  - параметры СУБД (локальная / внешняя: хост, порт, БД, пользователь)
+#  - логин и пароль первого администратора
+sudo systemctl enable --now xmark-server</code></pre>
+
+  <h3>3.2. Вариант B — контейнеры</h3>
+<pre><code>tar xzf xmark-server-1.0.x.tar.gz &amp;&amp; cd xmark-server
+cp .env.example .env          # заполнить XMARK_HOST, XMARK_DB_*, XMARK_ADMIN_PASSWORD
+docker compose up -d
+docker compose exec server xmark-server setup --non-interactive</code></pre>
+  <p>Для Kubernetes в каталоге <code>k8s/</code> приложены манифесты (Deployment, Service, Ingress, PVC) и values для Helm.</p>
+
+  <h3>3.3. Внешняя СУБД</h3>
+  <p>При использовании выделенного PostgreSQL / Postgres Pro создайте базу и пользователя, затем укажите их в мастере или в <code>/etc/xmark/server.yaml</code>:</p>
+<pre><code>CREATE USER xmark WITH PASSWORD '...';
+CREATE DATABASE xmark OWNER xmark ENCODING 'UTF8';</code></pre>
+
+  <h3>3.4. Первый вход</h3>
+  <p>Откройте <code>https://&lt;имя-панели&gt;/</code> в браузере, войдите под администратором, созданным на этапе настройки. Проверьте синхронизацию времени сервера с NTP: корректность меток времени зависит от точности часов сервера.</p>
+
+  <h2 id="license">4. Активация лицензии</h2>
+  <ol>
+    <li>В панели: <strong>Настройки → Лицензия → Загрузить файл</strong>. Выберите файл <code>xmark.lic</code>, полученный от ООО «ОПЛОТ-ИТ».</li>
+    <li>Или из командной строки сервера: <code>sudo xmark-server license install /path/xmark.lic</code>.</li>
+    <li>В разделе «Лицензия» отобразятся организация, число лицензированных рабочих мест, срок действия и уровень поддержки.</li>
+  </ol>
+  <p>Активация не требует доступа в Интернет: лицензия привязана к организации и проверяется локально. При превышении числа рабочих мест новые агенты регистрируются со статусом «Без лицензии» и не выполняют маркировку — панель выводит предупреждение.</p>
+
+  <h2 id="token">5. Токен развёртывания агентов</h2>
+  <p>Агенты регистрируются на сервере по токену развёртывания. В панели: <strong>Рабочие станции → Токены → Создать</strong>. Укажите название (например, «Пилот, бухгалтерия»), группу по умолчанию и срок действия. Скопируйте значение токена — оно понадобится в параметрах установки. Токен можно отозвать в любой момент; уже зарегистрированные агенты продолжат работу.</p>
+
+  <h2 id="win">6. Установка агента на Windows</h2>
+  <h3>6.1. Интерактивно</h3>
+  <p>Запустите <code>xmark-agent-1.0.x-x64.msi</code> от имени администратора, укажите адрес сервера и токен развёртывания. После завершения перезагрузка не требуется; агент стартует как служба <code>XMarkAgent</code>, драйвер загружается автоматически.</p>
+  <h3>6.2. Тихая установка</h3>
+<pre><code>msiexec /i xmark-agent-1.0.x-x64.msi /qn /norestart ^
+  SERVER_URL=https://xmark.corp.local ^
+  ENROLL_TOKEN=&lt;токен&gt; ^
+  GROUP="Бухгалтерия"</code></pre>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Параметр</th><th>Обязателен</th><th>Описание</th></tr></thead>
+      <tbody>
+        <tr><td><code>SERVER_URL</code></td><td>да</td><td>Адрес панели управления</td></tr>
+        <tr><td><code>ENROLL_TOKEN</code></td><td>да</td><td>Токен развёртывания</td></tr>
+        <tr><td><code>GROUP</code></td><td>нет</td><td>Группа рабочих станций в панели</td></tr>
+        <tr><td><code>CA_CERT</code></td><td>нет</td><td>Путь к корневому сертификату, если сервер использует внутренний ЦС</td></tr>
+        <tr><td><code>PROXY</code></td><td>нет</td><td>HTTP-прокси для связи с сервером</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Журнал установки: <code>msiexec ... /l*v C:\Windows\Temp\xmark-install.log</code>.</p>
+
+  <h2 id="linux">7. Установка агента на Linux</h2>
+<pre><code># Astra Linux / Debian / Ubuntu
+sudo apt install ./xmark-agent_1.0.x_amd64.deb
+
+# РЕД ОС
+sudo dnf install ./xmark-agent-1.0.x.x86_64.rpm
+
+# Регистрация на сервере
+sudo xmark-agent enroll --server https://xmark.corp.local --token &lt;токен&gt; --group "Бухгалтерия"
+sudo systemctl enable --now xmark-agent</code></pre>
+  <p>Параметры можно передать без интерактивного шага через файл <code>/etc/xmark/agent.conf</code> или переменные окружения <code>XMARK_SERVER_URL</code>, <code>XMARK_ENROLL_TOKEN</code> при установке пакета — тогда регистрация выполняется автоматически в post-install.</p>
+  <p>На Astra Linux SE с включённым мандатным контролем целостности (МКЦ) установка выполняется с высоким уровнем целостности; пакет подписан и содержит необходимые метки.</p>
+  <p class="todo">подтвердить порядок установки модуля ядра на Astra Linux SE 1.7 (готовый модуль / DKMS) и требования к уровням МКЦ.</p>
+
+  <h2 id="mass">8. Централизованная установка</h2>
+  <h3>8.1. Групповые политики Active Directory (GPO)</h3>
+  <ol>
+    <li>Скопируйте MSI в сетевую папку, доступную компьютерам домена на чтение.</li>
+    <li>Создайте файл трансформации <code>xmark.mst</code> с параметрами <code>SERVER_URL</code> и <code>ENROLL_TOKEN</code> (утилита <code>xmark-mst.exe</code> из дистрибутива) либо задайте параметры в <code>agent.json</code> рядом с MSI.</li>
+    <li>В консоли управления групповыми политиками: <strong>Конфигурация компьютера → Политики → Конфигурация программ → Установка программ → Назначенный пакет</strong>, укажите MSI и трансформацию.</li>
+    <li>Агент установится при следующей загрузке компьютеров.</li>
+  </ol>
+  <h3>8.2. Kaspersky Security Center, SCCM и аналоги</h3>
+  <p>Создайте инсталляционный пакет из MSI с параметрами командной строки из п. 6.2 и задачу удалённой установки на нужную группу устройств.</p>
+  <h3>8.3. Ansible / Puppet (Linux)</h3>
+<pre><code>ansible-playbook -i inventory.ini ansible/agent.yml \
+  -e xmark_server_url=https://xmark.corp.local \
+  -e xmark_enroll_token=&lt;токен&gt; \
+  -e xmark_group="Инженеры"</code></pre>
+  <p>Роль определяет дистрибутив, устанавливает DEB или RPM, регистрирует агента и включает службу. Пример манифеста Puppet — в <code>ansible/puppet-example.pp</code>.</p>
+  <h3>8.4. Собственные скрипты</h3>
+  <p>Silent-инсталлятор возвращает код 0 при успехе; коды ошибок описаны в <a href="admin-guide.html#codes">руководстве администратора</a>.</p>
+
+  <h2 id="verify">9. Проверка работоспособности</h2>
+  <ol>
+    <li>На рабочей станции: <code>xmark-agent status</code> (Linux) или <code>"C:\Program Files\Oplot\XMark\xmark-agent.exe" status</code> (Windows) — должно выводиться <code>marking: active, server: connected</code>.</li>
+    <li>В панели: <strong>Рабочие станции</strong> — компьютер отображается со статусом «Активен» и временем последнего контакта не старше 5 минут.</li>
+    <li>Сделайте скриншот рабочего стола станции, загрузите его в <strong>Анализ снимка</strong>: система должна определить имя компьютера и время с точностью до секунд.</li>
+    <li>Повторите проверку с фотографией экрана, сделанной на смартфон.</li>
+  </ol>
+
+  <h2 id="upgrade">10. Обновление и удаление</h2>
+  <ul>
+    <li><strong>Сервер:</strong> установите новый пакет поверх (<code>apt install ./xmark-server_1.0.y_amd64.deb</code> / <code>dnf upgrade</code>) или обновите образы (<code>docker compose pull &amp;&amp; docker compose up -d</code>). Миграции БД выполняются автоматически; перед обновлением сделайте резервную копию (см. <a href="admin-guide.html#backup">руководство администратора</a>).</li>
+    <li><strong>Агенты:</strong> из панели (<strong>Рабочие станции → Обновить агент</strong>) или теми же средствами распространения, что и при установке. Новая версия MSI обновляет предыдущую без удаления.</li>
+    <li><strong>Удаление агента:</strong> Windows — «Программы и компоненты» или <code>msiexec /x xmark-agent-1.0.x-x64.msi /qn</code>; Linux — <code>apt remove xmark-agent</code> / <code>dnf remove xmark-agent</code>. Удаление требует прав администратора; если в политике включена защита от удаления, необходимо указать код деинсталляции из панели: <code>UNINSTALL_CODE=&lt;код&gt;</code>.</li>
+  </ul>
+
+  <h2 id="support">11. Контакты технических специалистов</h2>
+  <div class="card">
+    <p><strong>Техническая поддержка ООО «ОПЛОТ-ИТ»</strong><br>
+    Электронная почта: <a href="mailto:support@oplot-it.ru">support@oplot-it.ru</a><br>
+    Телефон: <a href="tel:+74993481107">+7 (499) 348-11-07</a><br>
+    Часы работы: рабочие дни, 9:00–18:00 МСК (стандартный уровень); 24×7 — для расширенной поддержки.<br>
+    Регламент — в документе <a href="lifecycle.html">«Процессы жизненного цикла и техническая поддержка»</a>.</p>
+  </div>
+
+  <div class="doc-footer">
+    Оплот.X-Mark · Руководство по установке · ООО «ОПЛОТ-ИТ», 2026 ·
+    <a href="./">Все документы</a> · <a href="pdf/xmark-install.pdf">Скачать PDF</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="inner">
+    <div class="cols">
+      <div class="req">
+        <h5>Правообладатель</h5>
+        ООО «ОПЛОТ-ИТ»<br>
+        ИНН 9705227487 · ОГРН 1247700465902<br>
+        ОКВЭД 62.02<br>
+        115054, г. Москва, ул. Большая Пионерская, д. 15, стр. 1, помещ. 1/1
+      </div>
+      <div>
+        <h5>Продукт</h5>
+        <a href="../">Описание</a>
+        <a href="./">Документация</a>
+        <a href="../price.html">Стоимость</a>
+        <a href="https://xmark-demo.k3s.dex-it.ru" target="_blank" rel="noopener">Демо-стенд</a>
+      </div>
+      <div>
+        <h5>Контакты</h5>
+        <a href="tel:+74993481107">+7 (499) 348-11-07</a>
+        <a href="mailto:office@oplot-it.ru">office@oplot-it.ru</a>
+        <a href="../company.html">О правообладателе</a>
+        <a href="../privacy.html">Политика ПДн</a>
+      </div>
+    </div>
+    <div class="bottom">
+      <span>© 2026 ООО «ОПЛОТ-ИТ». Все права защищены.</span>
+      <span>Информация доступна без регистрации и авторизации.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
