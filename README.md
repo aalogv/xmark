@@ -95,13 +95,17 @@ python3 scripts/patch-landing.py           # применить
 
 ## Публикация на xmark.oplot-it.ru
 
-Вариант GitHub Pages:
+GitHub Pages включён: источник — ветка `main`, корень; custom domain `xmark.oplot-it.ru` (файл `CNAME`). Каждый push в `main` публикуется автоматически за 1–2 минуты.
 
-1. Settings → Pages → Source: `main`, папка `/ (root)`. Для приватного репозитория нужен GitHub Pro; иначе сделать репозиторий публичным.
-2. В DNS `oplot-it.ru` добавить `CNAME xmark → aalogv.github.io`.
-3. Settings → Pages → Custom domain: `xmark.oplot-it.ru`, включить Enforce HTTPS. Файл `CNAME` уже в репозитории.
+DNS у reg.ru (ns1/ns2.reg.ru). В зоне `oplot-it.ru` сейчас есть A-запись `xmark → 51.38.26.253` (k3s). Её нужно заменить:
 
-Вариант собственного хостинга: скопировать содержимое репозитория в корень веб-сервера, HTTPS обязателен.
+1. reg.ru → Домены → `oplot-it.ru` → Управление зоной DNS.
+2. Удалить A-запись с subdomain `xmark`.
+3. Добавить запись: тип **CNAME**, subdomain `xmark`, значение `aalogv.github.io.` (с точкой в конце, если поле требует FQDN), TTL по умолчанию.
+4. Подождать 5–30 минут, проверить: `dig +short xmark.oplot-it.ru` должен вернуть `aalogv.github.io.` и IP GitHub (185.199.108–111.153).
+5. GitHub → репозиторий → Settings → Pages: дождаться «DNS check successful», включить **Enforce HTTPS** (сертификат Let's Encrypt выпускается автоматически, до часа).
+
+Проверка после переключения: `curl -sI https://xmark.oplot-it.ru/docs/ | head -1` → `HTTP/2 200`.
 
 ## Вне репозитория
 
