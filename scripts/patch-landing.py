@@ -8,7 +8,9 @@
      email office@oplot-it.ru;
   4. навигация: пункт «Документация»;
   5. секция «Цены»: ссылка на порядок определения стоимости;
-  6. подпись под формой: ссылка на политику обработки ПДн.
+  6. подпись под формой: ссылка на политику обработки ПДн;
+  7. список Linux в «Внедрении»: без RHEL, с Альт;
+  8. шаг «Установка драйвера» → «Установка агента».
 
 Скрипт идемпотентен: если правка уже применена — пропускает её. Если целевой фрагмент
 не найден ровно один раз (и правка ещё не применена) — падает, ничего не записав.
@@ -60,6 +62,9 @@ CONSENT_NEW = esc(
 
 OS_OLD = "detail: 'Astra Linux, РЕД ОС, Ubuntu, Debian, RHEL'"
 OS_NEW = "detail: 'Astra Linux SE, РЕД ОС, Альт, Ubuntu, Debian'"
+
+INSTALL_OLD = "title: 'Установка драйвера'"
+INSTALL_NEW = "title: 'Установка агента'"
 
 FOOTER_START = esc('<footer style="background: #F5F5F7; border-top: 1px solid rgba(0,0,0,0.08)">')
 FOOTER_END = esc('</footer>')
@@ -156,6 +161,9 @@ def main() -> None:
 
     # 7. список ОС: RHEL — иностранная ОС, упоминание вредит экспертизе; Альт — из реестра
     out = replace_once(out, OS_OLD, OS_NEW, "deploy: список Linux без RHEL, с Альт", done_marker=OS_NEW)
+
+    # 8. шаг «Как работает»: ставится агент (драйвер — его часть), как и в тексте шага
+    out = replace_once(out, INSTALL_OLD, INSTALL_NEW, "how: «Установка агента»", done_marker=INSTALL_NEW)
 
     if out == src:
         print("Изменений нет.")
