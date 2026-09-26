@@ -21,6 +21,6 @@ for name in functional requirements install user-guide admin-guide lifecycle; do
   "$CHROME" --headless=new --disable-gpu --no-pdf-header-footer \
     --run-all-compositor-stages-before-draw --virtual-time-budget=5000 \
     --print-to-pdf="$out" "file://$src" 2>/dev/null
-  printf '%-14s %6s KB\n' "$name" "$(( $(stat -f%z "$out") / 1024 ))"
+  printf '%-14s %6s KB\n' "$name" "$(( $(stat -c%s "$out" 2>/dev/null || stat -f%z "$out") / 1024 ))"
 done
 echo "PDF: docs/pdf/"

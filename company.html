@@ -70,7 +70,7 @@
   <h2 id="products">Программное обеспечение и услуги</h2>
   <div class="card">
     <h3>Оплот.X-Mark — невидимая маркировка экрана</h3>
-    <p>Программное обеспечение для защиты от утечек информации через скриншоты и фотографии экрана. Драйвер-агент подмешивает в изображение на мониторе незаметный для человека сигнал, содержащий идентификатор рабочей станции и точное время. Панель управления позволяет по снимку определить компьютер и момент съёмки, а также контролировать состояние агентов на всём парке рабочих станций.</p>
+    <p>Программное обеспечение для защиты от утечек информации через скриншоты и фотографии экрана. Драйвер-агент подмешивает в изображение на мониторе незаметный для человека сигнал, по которому устанавливаются рабочая станция, пользователь и время отображения. Панель управления позволяет по снимку определить компьютер и момент съёмки, а также контролировать состояние агентов на всём парке рабочих станций.</p>
     <ul>
       <li>Поддерживаемые ОС: Astra Linux Special Edition, РЕД ОС, Альт, Ubuntu, Debian; Windows 10 / 11, Windows Server.</li>
       <li>Централизованное развёртывание: GPO/MSI, DEB/RPM, Ansible, Kaspersky Security Center, silent-инсталлятор.</li>
@@ -97,12 +97,12 @@
     <table>
       <thead><tr><th>Компонент</th><th>Языки и инструменты</th></tr></thead>
       <tbody>
-        <tr><td>Агент для Windows</td><td>C++ 17, Windows Driver Kit (WDK), Visual Studio 2022, WiX Toolset (MSI)</td></tr>
-        <tr><td>Агент для Linux</td><td>C 11 / C++ 17, модуль ядра Linux, GCC, CMake, DKMS, dpkg / rpm</td></tr>
-        <tr><td>Сервис анализа снимков</td><td>C++ 17, OpenCV, Python 3.12 (эталонные тесты стойкости метки)</td></tr>
-        <tr><td>Сервер панели управления</td><td>Go 1.23, PostgreSQL 16, REST / OpenAPI 3</td></tr>
-        <tr><td>Веб-интерфейс панели</td><td>TypeScript 5, React 18, Vite</td></tr>
-        <tr><td>Сборка и инфраструктура</td><td>Git, GitLab CI, Docker, Kubernetes, Ansible, Astra Linux SE / РЕД ОС — тестовые стенды</td></tr>
+        <tr><td>Агент для Windows</td><td>C++ 17, Direct3D 11, DirectComposition, HLSL, CMake, Visual Studio 2022 / MinGW-w64, WiX Toolset (MSI)</td></tr>
+        <tr><td>Агент для Linux</td><td>C++ 17, Vulkan, XCB (X11), HLSL → SPIR-V (glslang), GCC, CMake, dpkg / rpm</td></tr>
+        <tr><td>Сервис анализа снимков</td><td>C# / .NET 10, ONNX Runtime (CUDA), SixLabors.ImageSharp; Python 3, PyTorch — обучение нейросетевой модели распознавания</td></tr>
+        <tr><td>Сервер панели управления</td><td>C# / .NET 10 (ASP.NET Core), PostgreSQL 16, REST / OpenAPI 3</td></tr>
+        <tr><td>Веб-интерфейс панели</td><td>HTML, CSS, JavaScript</td></tr>
+        <tr><td>Сборка и инфраструктура</td><td>Git, CMake, MSBuild, Docker, Kubernetes, Ansible, Astra Linux SE / РЕД ОС — тестовые стенды</td></tr>
       </tbody>
     </table>
   </div>
