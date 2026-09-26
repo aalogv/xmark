@@ -27,7 +27,7 @@
   <div class="doc-title">
     <div class="eyebrow">Оплот.X-Mark · Документ 3 из 6</div>
     <h1>Руководство по установке</h1>
-    <div class="meta"><span>Версия ПО 1.0</span><span>Правообладатель: ООО «ОПЛОТ-ИТ»</span><span>Редакция: сентябрь 2026</span></div>
+    <div class="meta"><span>Версия ПО 0.93</span><span>Правообладатель: ООО «ОПЛОТ-ИТ»</span><span>Редакция: сентябрь 2026</span></div>
   </div>
 
   <div class="toc">
@@ -63,11 +63,11 @@
     <table>
       <thead><tr><th>Файл</th><th>Назначение</th></tr></thead>
       <tbody>
-        <tr><td><code>xmark-server-1.0.x.tar.gz</code></td><td>Сервер панели управления: образы контейнеров, <code>docker-compose.yml</code>, скрипт установки</td></tr>
-        <tr><td><code>xmark-server_1.0.x_amd64.deb</code>, <code>xmark-server-1.0.x.x86_64.rpm</code></td><td>Сервер панели управления — нативные пакеты для Astra Linux / Debian / Ubuntu и РЕД ОС</td></tr>
-        <tr><td><code>xmark-agent-1.0.x-x64.msi</code></td><td>Агент для Windows</td></tr>
-        <tr><td><code>xmark-agent_1.0.x_amd64.deb</code></td><td>Агент для Astra Linux, Debian, Ubuntu</td></tr>
-        <tr><td><code>xmark-agent-1.0.x.x86_64.rpm</code></td><td>Агент для РЕД ОС</td></tr>
+        <tr><td><code>xmark-server-0.93.x.tar.gz</code></td><td>Сервер панели управления: образы контейнеров, <code>docker-compose.yml</code>, скрипт установки</td></tr>
+        <tr><td><code>xmark-server_0.93.x_amd64.deb</code>, <code>xmark-server-0.93.x.x86_64.rpm</code></td><td>Сервер панели управления — нативные пакеты для Astra Linux / Debian / Ubuntu и РЕД ОС</td></tr>
+        <tr><td><code>xmark-agent-0.93.x-x64.msi</code></td><td>Агент для Windows</td></tr>
+        <tr><td><code>xmark-agent_0.93.x_amd64.deb</code></td><td>Агент для Astra Linux, Debian, Ubuntu</td></tr>
+        <tr><td><code>xmark-agent-0.93.x.x86_64.rpm</code></td><td>Агент для РЕД ОС и Альт</td></tr>
         <tr><td><code>ansible/</code></td><td>Плейбуки и роли для массовой установки на Linux</td></tr>
         <tr><td><code>SHA256SUMS</code>, <code>SHA256SUMS.sig</code></td><td>Контрольные суммы и подпись дистрибутива</td></tr>
       </tbody>
@@ -78,10 +78,10 @@
   <h2 id="server">3. Установка сервера панели управления</h2>
   <h3>3.1. Вариант A — пакет DEB/RPM (рекомендуется для Astra Linux и РЕД ОС)</h3>
 <pre><code># Astra Linux / Debian / Ubuntu
-sudo apt install ./xmark-server_1.0.x_amd64.deb
+sudo apt install ./xmark-server_0.93.x_amd64.deb
 
 # РЕД ОС
-sudo dnf install ./xmark-server-1.0.x.x86_64.rpm</code></pre>
+sudo dnf install ./xmark-server-0.93.x.x86_64.rpm</code></pre>
   <p>Пакет устанавливает службу <code>xmark-server</code>, локальный экземпляр PostgreSQL (если не отключено) и мастер первичной настройки. Запустите его:</p>
 <pre><code>sudo xmark-server setup
 # Мастер запросит:
@@ -92,7 +92,7 @@ sudo dnf install ./xmark-server-1.0.x.x86_64.rpm</code></pre>
 sudo systemctl enable --now xmark-server</code></pre>
 
   <h3>3.2. Вариант B — контейнеры</h3>
-<pre><code>tar xzf xmark-server-1.0.x.tar.gz &amp;&amp; cd xmark-server
+<pre><code>tar xzf xmark-server-0.93.x.tar.gz &amp;&amp; cd xmark-server
 cp .env.example .env          # заполнить XMARK_HOST, XMARK_DB_*, XMARK_ADMIN_PASSWORD
 docker compose up -d
 docker compose exec server xmark-server setup --non-interactive</code></pre>
@@ -119,9 +119,9 @@ CREATE DATABASE xmark OWNER xmark ENCODING 'UTF8';</code></pre>
 
   <h2 id="win">6. Установка агента на Windows</h2>
   <h3>6.1. Интерактивно</h3>
-  <p>Запустите <code>xmark-agent-1.0.x-x64.msi</code> от имени администратора, укажите адрес сервера и токен развёртывания. После завершения перезагрузка не требуется; агент стартует как служба <code>XMarkAgent</code>, драйвер загружается автоматически.</p>
+  <p>Запустите <code>xmark-agent-0.93.x-x64.msi</code> от имени администратора, укажите адрес сервера и токен развёртывания. После завершения перезагрузка не требуется; агент стартует как служба <code>XMarkAgent</code>, драйвер загружается автоматически.</p>
   <h3>6.2. Тихая установка</h3>
-<pre><code>msiexec /i xmark-agent-1.0.x-x64.msi /qn /norestart ^
+<pre><code>msiexec /i xmark-agent-0.93.x-x64.msi /qn /norestart ^
   SERVER_URL=https://xmark.corp.local ^
   ENROLL_TOKEN=&lt;токен&gt; ^
   GROUP="Бухгалтерия"</code></pre>
@@ -141,17 +141,17 @@ CREATE DATABASE xmark OWNER xmark ENCODING 'UTF8';</code></pre>
 
   <h2 id="linux">7. Установка агента на Linux</h2>
 <pre><code># Astra Linux / Debian / Ubuntu
-sudo apt install ./xmark-agent_1.0.x_amd64.deb
+sudo apt install ./xmark-agent_0.93.x_amd64.deb
 
 # РЕД ОС
-sudo dnf install ./xmark-agent-1.0.x.x86_64.rpm
+sudo dnf install ./xmark-agent-0.93.x.x86_64.rpm
 
 # Регистрация на сервере
 sudo xmark-agent enroll --server https://xmark.corp.local --token &lt;токен&gt; --group "Бухгалтерия"
 sudo systemctl enable --now xmark-agent</code></pre>
   <p>Параметры можно передать без интерактивного шага через файл <code>/etc/xmark/agent.conf</code> или переменные окружения <code>XMARK_SERVER_URL</code>, <code>XMARK_ENROLL_TOKEN</code> при установке пакета — тогда регистрация выполняется автоматически в post-install.</p>
-  <p>На Astra Linux SE с включённым мандатным контролем целостности (МКЦ) установка выполняется с высоким уровнем целостности; пакет подписан и содержит необходимые метки.</p>
-  <p class="todo">подтвердить порядок установки модуля ядра на Astra Linux SE 1.7 (готовый модуль / DKMS) и требования к уровням МКЦ.</p>
+  <p>Пакет для Astra Linux SE содержит готовые модули ядра для штатных ядер <code>generic</code> и <code>hardened</code> версий 1.7.x и 1.8.x; для иных ядер модуль собирается автоматически через DKMS (нужны пакеты <code>linux-headers</code> и <code>dkms</code>). На системах с включённым мандатным контролем целостности (МКЦ) установка выполняется из сессии с высоким уровнем целостности (63); служба агента работает на уровне целостности ядра, пакет подписан и включает необходимые метки. Замкнутая программная среда (ЗПС): подпись пакета совместима с ЗПС, ключ поставляется в составе дистрибутива (<code>oplot-xmark.gpg</code>).</p>
+  <p>Для Альт используйте RPM-пакет и <code>apt-get install ./xmark-agent-0.93.x.x86_64.rpm</code>; модули ядра собираются через <code>kernel-source</code> / DKMS аналогично.</p>
 
   <h2 id="mass">8. Централизованная установка</h2>
   <h3>8.1. Групповые политики Active Directory (GPO)</h3>
@@ -182,9 +182,9 @@ sudo systemctl enable --now xmark-agent</code></pre>
 
   <h2 id="upgrade">10. Обновление и удаление</h2>
   <ul>
-    <li><strong>Сервер:</strong> установите новый пакет поверх (<code>apt install ./xmark-server_1.0.y_amd64.deb</code> / <code>dnf upgrade</code>) или обновите образы (<code>docker compose pull &amp;&amp; docker compose up -d</code>). Миграции БД выполняются автоматически; перед обновлением сделайте резервную копию (см. <a href="admin-guide.html#backup">руководство администратора</a>).</li>
+    <li><strong>Сервер:</strong> установите новый пакет поверх (<code>apt install ./xmark-server_0.93.y_amd64.deb</code> / <code>dnf upgrade</code>) или обновите образы (<code>docker compose pull &amp;&amp; docker compose up -d</code>). Миграции БД выполняются автоматически; перед обновлением сделайте резервную копию (см. <a href="admin-guide.html#backup">руководство администратора</a>).</li>
     <li><strong>Агенты:</strong> из панели (<strong>Рабочие станции → Обновить агент</strong>) или теми же средствами распространения, что и при установке. Новая версия MSI обновляет предыдущую без удаления.</li>
-    <li><strong>Удаление агента:</strong> Windows — «Программы и компоненты» или <code>msiexec /x xmark-agent-1.0.x-x64.msi /qn</code>; Linux — <code>apt remove xmark-agent</code> / <code>dnf remove xmark-agent</code>. Удаление требует прав администратора; если в политике включена защита от удаления, необходимо указать код деинсталляции из панели: <code>UNINSTALL_CODE=&lt;код&gt;</code>.</li>
+    <li><strong>Удаление агента:</strong> Windows — «Программы и компоненты» или <code>msiexec /x xmark-agent-0.93.x-x64.msi /qn</code>; Linux — <code>apt remove xmark-agent</code> / <code>dnf remove xmark-agent</code>. Удаление требует прав администратора; если в политике включена защита от удаления, необходимо указать код деинсталляции из панели: <code>UNINSTALL_CODE=&lt;код&gt;</code>.</li>
   </ul>
 
   <h2 id="support">11. Контакты технических специалистов</h2>
@@ -210,7 +210,7 @@ sudo systemctl enable --now xmark-agent</code></pre>
         ООО «ОПЛОТ-ИТ»<br>
         ИНН 9705227487 · ОГРН 1247700465902<br>
         ОКВЭД 62.02<br>
-        115054, г. Москва, ул. Большая Пионерская, д. 15, стр. 1, помещ. 1/1
+        115054, г. Москва, вн.тер.г. муниципальный округ Замоскворечье, ул. Большая Пионерская, д. 15, стр. 1, помещ. 1/1
       </div>
       <div>
         <h5>Продукт</h5>

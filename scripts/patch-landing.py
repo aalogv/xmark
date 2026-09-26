@@ -58,6 +58,9 @@ CONSENT_NEW = esc(
     'text-decoration: underline">обработкой персональных данных</a>'
 )
 
+OS_OLD = "detail: 'Astra Linux, РЕД ОС, Ubuntu, Debian, RHEL'"
+OS_NEW = "detail: 'Astra Linux SE, РЕД ОС, Альт, Ubuntu, Debian'"
+
 FOOTER_START = esc('<footer style="background: #F5F5F7; border-top: 1px solid rgba(0,0,0,0.08)">')
 FOOTER_END = esc('</footer>')
 
@@ -150,6 +153,9 @@ def main() -> None:
 
     # 6. consent
     out = replace_once(out, CONSENT_OLD, CONSENT_NEW, "form: ссылка на privacy.html", done_marker=CONSENT_NEW)
+
+    # 7. список ОС: RHEL — иностранная ОС, упоминание вредит экспертизе; Альт — из реестра
+    out = replace_once(out, OS_OLD, OS_NEW, "deploy: список Linux без RHEL, с Альт", done_marker=OS_NEW)
 
     if out == src:
         print("Изменений нет.")
