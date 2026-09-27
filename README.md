@@ -27,6 +27,7 @@ assets/site.css       общие стили статических страни�
 scripts/patch-landing.py  точечные правки лендинга (идемпотентен)
 scripts/build-pdf.sh      генерация PDF через headless Chrome
 scripts/regru-dns.sh      DNS у reg.ru через REG.API v2 (list / switch-to-pages / check)
+scripts/dns_migrate.py    перенос зоны oplot-it.ru с reg.ru на Selectel DNS (export / plan / apply / verify / switch)
 CNAME                 домен для GitHub Pages
 ```
 
@@ -167,6 +168,24 @@ xmark2.oplot-it.ru:8080 {
 Или в ASP.NET: `builder.Services.AddCors(o => o.AddDefaultPolicy(p => p.WithOrigins("https://xmark.oplot-it.ru").AllowAnyHeader().AllowAnyMethod()));` и `app.UseCors();` до маршрутов. На время локальной проверки добавить также `http://localhost:8765`.
 
 Демо считает один снимок за раз (503 «Идёт другой поиск»); при нескольких посетителях лендинга это будет заметно.
+
+### Перенос DNS-хостинга на Selectel
+
+Причина: авторитативные NS reg.ru не отвечают проверяющему GitHub (health API: `Dnsruby::ResolvTimeout`), поэтому не проходят верификация домена и выпуск сертификата. Регистратор остаётся reg.ru, меняются только NS.
+
+1. Selectel: зарегистрировать аккаунт → создать проект → IAM → Сервисные пользователи → пользователь с ролью администратора проекта.
+2. Заполнить `~/.config/xmark/dns.env` (шаблон создаётся скриптом; файл вне репозитория): `REGRU_USER`, `REGRU_PASS`, `SEL_ACCOUNT`, `SEL_USER`, `SEL_PASS`, `SEL_PROJECT`.
+3. Выполнить по шагам:
+
+```bash
+python3 scripts/dns_migrate.py export   # зона reg.ru -> ~/.config/xmark/oplot-it.ru.zone.json
+python3 scripts/dns_migrate.py plan     # что будет создано
+python3 scripts/dns_migrate.py apply    # создать зону и записи в Selectel, напечатать NS
+python3 scripts/dns_migrate.py verify   # сравнить ответы NS Selectel и NS reg.ru по каждой записи
+python3 scripts/dns_migrate.py switch   # прописать NS Selectel у регистратора (только при verify без DIFF)
+```
+
+После смены NS: 10–60 минут на распространение, затем GitHub → Settings → Pages → «Check again», верификация домена и Enforce HTTPS.
 
 ## Вне репозитория
 
