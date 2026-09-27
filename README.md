@@ -118,6 +118,28 @@ scripts/regru-dns.sh switch-to-pages   # удалить A xmark, добавит�
 scripts/regru-dns.sh check             # dig + HTTPS
 ```
 
+## Блок «Анализ снимка» на лендинге
+
+Живой: файл уходит в API демо-стенда `https://xmark2.oplot-it.ru:8080` (`POST /api/decode` → `jobId`, поллинг `GET /api/decode/{jobId}`), режимы `screen` / `photo`. Код — шаг 13 в `scripts/patch-landing.py`.
+
+Чтобы браузер мог читать ответы с другого origin, на демо-сервере нужен CORS. Сейчас заголовков `Access-Control-Allow-Origin` нет, и страница показывает «Сервис анализа недоступен». Вариант для Caddy перед Kestrel:
+
+```
+xmark2.oplot-it.ru:8080 {
+    @cors header Origin https://xmark.oplot-it.ru
+    header @cors Access-Control-Allow-Origin "https://xmark.oplot-it.ru"
+    header @cors Access-Control-Allow-Methods "GET, POST, OPTIONS"
+    header @cors Access-Control-Allow-Headers "Content-Type"
+    @preflight method OPTIONS
+    respond @preflight 204
+    reverse_proxy localhost:5000
+}
+```
+
+Или в ASP.NET: `builder.Services.AddCors(o => o.AddDefaultPolicy(p => p.WithOrigins("https://xmark.oplot-it.ru").AllowAnyHeader().AllowAnyMethod()));` и `app.UseCors();` до маршрутов. На время локальной проверки добавить также `http://localhost:8765`.
+
+Демо считает один снимок за раз (503 «Идёт другой поиск»); при нескольких посетителях лендинга это будет заметно.
+
 ## Вне репозитория
 
 - На корпоративном сайте oplot-it.ru также должны быть реквизиты по приказу № 511 (для аккредитации).
