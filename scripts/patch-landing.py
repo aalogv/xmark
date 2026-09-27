@@ -15,7 +15,7 @@
  10. тексты о результате: компьютер, пользователь и время, а не «ID в метке»;
  11. hero-стат: «минимальная нагрузка» вместо «< 1 % CPU»;
  12. отрасли: «ОПК» вместо «Оборонки»;
- 13. блок «Анализ снимка»: живая загрузка в API демо-сервера (xmark2.oplot-it.ru:8080).
+ 13. блок «Анализ снимка»: демо кодирования и декодирования на API стенда (xmark2.oplot-it.ru:8080).
 
 Скрипт идемпотентен: если правка уже применена — пропускает её. Если целевой фрагмент
 не найден ровно один раз (и правка ещё не применена) — падает, ничего не записав.
@@ -148,12 +148,18 @@ FOOTER_MARKER = esc('ИНН 9705227487')  # признак, что футер у
 # offsetX, offsetY, meanAbsLlr, elapsedSeconds, message}. Режим corners (разметка углов)
 # на лендинг не переносится — ссылка на полное демо.
 ANALYZE_API = "https://xmark2.oplot-it.ru:8080"
-ANALYZE_MARKER = "const API = '" + ANALYZE_API + "';"
+ANALYZE_MARKER = "// ANALYZE_V2:"  # версия живого блока; смена маркера = перевыпуск блока
+LIVE_MARKER = "const API = '" + ANALYZE_API + "';"  # любая версия живого блока (для защиты шага 9)
 
 STATE_OLD = "state = { sent: false, name: '', company: '', phone: '', seats: '', comment: '' };"
-STATE_NEW = (
+STATE_V1 = (
     "state = { sent: false, name: '', company: '', phone: '', seats: '', comment: '', "
     "az: { file: null, preview: null, mode: 'screen', busy: false, result: null, error: null } };"
+)
+STATE_NEW = (
+    "state = { sent: false, name: '', company: '', phone: '', seats: '', comment: '', "
+    "az: { tab: 'encode', sample: 'doc', payload: '12345', delta: 3, encBusy: false, encError: null, encUrl: null, samples: null, "
+    "file: null, preview: null, mode: 'screen', busy: false, result: null, error: null } };"
 )
 
 ANALYZE_START = esc("  analyzeMock() {")
@@ -162,10 +168,53 @@ ANALYZE_END = esc("  renderVals() {")
 # Внимание: код ниже попадает внутрь JSON-строки шаблона. Нельзя использовать обратный слэш
 # и последовательность "</" (esc() экранирует только кавычки, "</" и переводы строк).
 ANALYZE_NEW = esc(r'''  analyzeMock() {
+    // ANALYZE_V2: демо кодирования и декодирования на API стенда
     const e = React.createElement;
     const az = this.state.az;
     const API = 'https://xmark2.oplot-it.ru:8080';
     const setAz = (p) => this.setState({ az: Object.assign({}, this.state.az, p) });
+    const SAMPLES = az.samples || [['doc', 'Документ'], ['ide', 'IDE'], ['schema', 'Схема'], ['ui', 'Приложение']];
+    if (!this._azInit) {
+      this._azInit = true;
+      fetch(API + '/api/samples').then((r) => r.ok ? r.json() : null).then((list) => {
+        if (Array.isArray(list) && list.length) setAz({ samples: list.map((s) => [s.id, s.title]) });
+      }).catch(() => {});
+      document.addEventListener('fullscreenchange', () => {
+        if (!document.fullscreenElement && this.state.az.encUrl) {
+          URL.revokeObjectURL(this.state.az.encUrl);
+          setAz({ encUrl: null });
+        }
+      });
+    }
+    const payloadOk = (raw) => {
+      const v = String(raw || '').trim();
+      if (/^0x[0-9a-f]{1,8}$/i.test(v)) return true;
+      return /^[0-9]{1,10}$/.test(v) && Number(v) <= 4294967295;
+    };
+    const closeFs = () => {
+      if (document.fullscreenElement) { document.exitFullscreen().catch(() => {}); }
+      if (this.state.az.encUrl) URL.revokeObjectURL(this.state.az.encUrl);
+      setAz({ encUrl: null });
+    };
+    const encode = async () => {
+      const cur = this.state.az;
+      if (cur.encBusy || !payloadOk(cur.payload)) return;
+      setAz({ encBusy: true, encError: null });
+      try {
+        const resp = await fetch(API + '/api/encode', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sample: cur.sample, payload: String(cur.payload).trim(), delta: Number(cur.delta) })
+        });
+        if (!resp.ok) throw new Error(await resp.text());
+        const url = URL.createObjectURL(await resp.blob());
+        setAz({ encBusy: false, encUrl: url });
+        const el = this._fsEl;
+        if (el && el.requestFullscreen) { el.requestFullscreen().catch(() => {}); }
+      } catch (err) {
+        const msg = (err && err.message) ? err.message : '';
+        setAz({ encBusy: false, encError: msg && msg !== 'Failed to fetch' ? msg : 'Сервис кодирования недоступен. Попробуйте позже или откройте демо-стенд.' });
+      }
+    };
     const pick = (file) => {
       if (!file) return;
       if (!file.type || file.type.indexOf('image/') !== 0) { setAz({ error: 'Нужен файл PNG или JPG' }); return; }
@@ -200,11 +249,45 @@ ANALYZE_NEW = esc(r'''  analyzeMock() {
     };
     const mono = "'JetBrains Mono', monospace";
     const muted = { color: '#86868B' };
-    const modeBtn = (value, label) => e('button', {
-      type: 'button', onClick: () => setAz({ mode: value }),
-      style: { background: az.mode === value ? '#2C67F2' : 'rgba(255,255,255,0.08)', color: '#F5F5F7', border: 'none', borderRadius: 100, padding: '5px 12px', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }
-    }, label);
+    const pill = (active, label, onClick, extra) => e('button', Object.assign({
+      type: 'button', onClick: onClick,
+      style: { background: active ? '#2C67F2' : 'rgba(255,255,255,0.08)', color: '#F5F5F7', border: 'none', borderRadius: 100, padding: '5px 12px', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }
+    }, extra || {}), label);
     const row = (k, v, color) => e('div', null, e('span', { style: muted }, k), e('span', { style: { color: color || '#F5F5F7' } }, v));
+    const box = (children) => e('div', { style: { margin: '0 20px 20px', background: '#0A0A0A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: 18, fontFamily: mono, fontSize: 12.5, lineHeight: 2, whiteSpace: 'pre-wrap' } }, children);
+    const isEncode = az.tab !== 'decode';
+
+    // ---------- вкладка «Закодировать» ----------
+    const encodeTab = [
+      e('div', { key: 'g', style: { margin: '0 20px 14px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 } },
+        SAMPLES.map((s) => e('div', {
+          key: s[0], onClick: () => setAz({ sample: s[0] }),
+          style: { cursor: 'pointer', borderRadius: 10, overflow: 'hidden', border: az.sample === s[0] ? '2px solid #2C67F2' : '2px solid rgba(255,255,255,0.08)', background: '#0A0A0A' }
+        },
+          e('img', { src: API + '/api/samples/' + s[0], alt: s[1], loading: 'lazy', style: { display: 'block', width: '100%', aspectRatio: '16 / 9', objectFit: 'cover', opacity: az.sample === s[0] ? 1 : 0.7 } }),
+          e('div', { style: { fontSize: 11, textAlign: 'center', padding: '4px 2px', color: az.sample === s[0] ? '#F5F5F7' : '#86868B' } }, s[1])))),
+      e('div', { key: 'f', style: { margin: '0 20px 14px', display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' } },
+        e('label', { style: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#86868B' } }, 'Метка',
+          e('input', {
+            value: az.payload, maxLength: 10, spellCheck: false, onChange: (ev) => setAz({ payload: ev.target.value }),
+            style: { width: 110, background: '#0A0A0A', color: '#F5F5F7', border: '1px solid ' + (payloadOk(az.payload) ? 'rgba(255,255,255,0.15)' : '#FF6B6B'), borderRadius: 8, padding: '5px 8px', fontFamily: mono, fontSize: 12.5 }
+          })),
+        e('span', { style: { display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#86868B' } }, 'Сила',
+          [2, 3, 4, 5].map((d) => pill(az.delta === d, String(d), () => setAz({ delta: d }), { key: d, style: { background: az.delta === d ? '#2C67F2' : 'rgba(255,255,255,0.08)', color: '#F5F5F7', border: 'none', borderRadius: 100, padding: '4px 9px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' } }))),
+        e('button', {
+          type: 'button', onClick: encode, disabled: az.encBusy || !payloadOk(az.payload),
+          style: { marginLeft: 'auto', background: (az.encBusy || !payloadOk(az.payload)) ? 'rgba(255,255,255,0.12)' : '#30D158', color: (az.encBusy || !payloadOk(az.payload)) ? '#86868B' : '#000', border: 'none', borderRadius: 100, padding: '6px 16px', fontSize: 13, fontWeight: 600, cursor: (az.encBusy || !payloadOk(az.payload)) ? 'default' : 'pointer', fontFamily: 'inherit' }
+        }, az.encBusy ? 'Кодируем…' : 'Закодировать')),
+      box(az.encError
+        ? e('div', { style: { color: '#FF6B6B', lineHeight: 1.5 } }, az.encError)
+        : [
+          e('div', { key: 'h', style: { color: '#F5F5F7', lineHeight: 1.6, whiteSpace: 'normal', fontFamily: 'inherit', fontSize: 13 } },
+            'Образец с невидимой меткой откроется на весь экран 1:1. Сделайте скриншот (масштаб 100 %) или сфотографируйте экран — затем декодируйте снимок на соседней вкладке.'),
+          e('div', { key: 'p', style: { marginTop: 6 } }, e('span', { style: muted }, 'Метка: '), e('span', { style: { color: '#62CFF4' } }, payloadOk(az.payload) ? String(az.payload).trim() : '0…4294967295 или 0x0…0xFFFFFFFF'))
+        ])
+    ];
+
+    // ---------- вкладка «Декодировать» ----------
     let body;
     if (az.busy) {
       body = e('div', { style: { color: '#62CFF4' } }, az.mode === 'photo' ? 'Поиск метки без разметки… может занять минуты' : 'Поиск метки… секунды–минуты');
@@ -231,14 +314,12 @@ ANALYZE_NEW = esc(r'''  analyzeMock() {
         row('Поиск:     ', '4 с')
       ];
     }
-    return e('div', { style: { background: '#1C1C1E', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 20, overflow: 'hidden' } },
-      e('div', { style: { padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', fontWeight: 600, fontSize: 15, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 } },
-        'Анализ снимка',
-        e('a', { href: API + '/', target: '_blank', rel: 'noopener', style: { fontSize: 12, fontWeight: 500, color: '#62CFF4' } }, 'Полное демо ›')),
+    const decodeTab = [
       e('div', {
+        key: 'd',
         onDragOver: (ev) => ev.preventDefault(),
         onDrop: (ev) => { ev.preventDefault(); pick(ev.dataTransfer.files && ev.dataTransfer.files[0]); },
-        style: { margin: 20, border: '1.5px dashed rgba(98,207,244,0.4)', borderRadius: 14, padding: '22px 18px', textAlign: 'center', background: 'rgba(44,103,242,0.06)' }
+        style: { margin: '0 20px 14px', border: '1.5px dashed rgba(98,207,244,0.4)', borderRadius: 14, padding: '22px 18px', textAlign: 'center', background: 'rgba(44,103,242,0.06)' }
       },
         az.preview
           ? e('img', { src: az.preview, alt: '', style: { maxWidth: '100%', maxHeight: 150, borderRadius: 8, display: 'block', margin: '0 auto 10px' } })
@@ -250,13 +331,42 @@ ANALYZE_NEW = esc(r'''  analyzeMock() {
           az.file ? 'выбрать другой файл' : 'или выберите файл',
           e('input', { type: 'file', accept: 'image/*', style: { display: 'none' }, onChange: (ev) => pick(ev.target.files && ev.target.files[0]) })),
         e('div', { style: { fontSize: 12, color: '#86868B', marginTop: 4 } }, 'PNG, JPG — включая пересъёмку на смартфон')),
-      e('div', { style: { margin: '0 20px 14px', display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' } },
-        modeBtn('screen', 'Скриншот'), modeBtn('photo', 'Фото экрана'),
+      e('div', { key: 'm', style: { margin: '0 20px 14px', display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' } },
+        pill(az.mode === 'screen', 'Скриншот', () => setAz({ mode: 'screen' })),
+        pill(az.mode === 'photo', 'Фото экрана', () => setAz({ mode: 'photo' })),
         e('button', {
           type: 'button', onClick: run, disabled: !az.file || az.busy,
           style: { marginLeft: 'auto', background: (!az.file || az.busy) ? 'rgba(255,255,255,0.12)' : '#30D158', color: (!az.file || az.busy) ? '#86868B' : '#000', border: 'none', borderRadius: 100, padding: '6px 16px', fontSize: 13, fontWeight: 600, cursor: (!az.file || az.busy) ? 'default' : 'pointer', fontFamily: 'inherit' }
         }, az.busy ? 'Ищем…' : 'Декодировать')),
-      e('div', { style: { margin: '0 20px 20px', background: '#0A0A0A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: 18, fontFamily: mono, fontSize: 12.5, lineHeight: 2, whiteSpace: 'pre-wrap' } }, body));
+      box(body)
+    ];
+
+    // ---------- полноэкранный показ закодированного образца ----------
+    const fullscreen = e('div', {
+      ref: (el) => { this._fsEl = el; },
+      style: az.encUrl
+        ? { position: 'fixed', inset: 0, zIndex: 10000, background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }
+        : { display: 'none' }
+    },
+      az.encUrl ? e('img', {
+        src: az.encUrl, alt: 'Закодированный образец',
+        onLoad: (ev) => { ev.target.style.width = (ev.target.naturalWidth / (window.devicePixelRatio || 1)) + 'px'; },
+        style: { display: 'block', maxWidth: 'none' }
+      }) : null,
+      az.encUrl ? e('button', {
+        type: 'button', onClick: closeFs, title: 'Закрыть',
+        style: { position: 'absolute', top: 12, right: 12, background: 'rgba(255,255,255,0.15)', color: '#fff', border: 'none', borderRadius: 100, padding: '6px 14px', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', opacity: 0.6 }
+      }, 'Закрыть · Esc') : null);
+
+    return e('div', { style: { background: '#1C1C1E', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 20, overflow: 'hidden' } },
+      e('div', { style: { padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' } },
+        e('div', { style: { display: 'flex', gap: 6 } },
+          pill(isEncode, 'Закодировать', () => setAz({ tab: 'encode' })),
+          pill(!isEncode, 'Декодировать', () => setAz({ tab: 'decode' }))),
+        e('a', { href: API + '/', target: '_blank', rel: 'noopener', style: { fontSize: 12, fontWeight: 500, color: '#62CFF4' } }, 'Полное демо ›')),
+      e('div', { style: { height: 14 } }),
+      isEncode ? encodeTab : decodeTab,
+      fullscreen);
   }
 ''')
 assert "\\" not in ANALYZE_NEW.replace('\\"', '').replace('\\n', '').replace('\\u002F', ''), "в коде анализа есть обратный слэш — сломает JSON шаблона"
@@ -316,7 +426,7 @@ def main() -> None:
 
     # 9. мокапы: время до минуты, в панели — пользователь, а не подразделение
     out = replace_once(out, HERO_TIME_OLD, HERO_TIME_NEW, "hero: время без секунд", done_marker=HERO_TIME_NEW)
-    if ANALYZE_MARKER in out:
+    if LIVE_MARKER in out:
         print("  = panel: статичный мокап уже заменён живым блоком (шаг 13)")
     else:
         out = replace_once(out, PANEL_TIME_OLD, PANEL_TIME_NEW, "panel: время без секунд", done_marker=PANEL_TIME_NEW)
@@ -334,8 +444,13 @@ def main() -> None:
     # 12. отрасли
     out = replace_once(out, OPK_OLD, OPK_NEW, "отрасли: ОПК", done_marker=OPK_NEW)
 
-    # 13. блок «Анализ снимка»: живая загрузка в API демо-сервера вместо статичного макета
-    out = replace_once(out, STATE_OLD, STATE_NEW, "state: поле az для анализа снимка", done_marker="az: {")
+    # 13. блок «Анализ снимка»: демо кодирования и декодирования на API стенда (вместо статичного макета)
+    if STATE_NEW in out:
+        print("  = state: поле az: уже применено")
+    elif STATE_V1 in out:
+        out = replace_once(out, STATE_V1, STATE_NEW, "state: поле az (обновление с v1)")
+    else:
+        out = replace_once(out, STATE_OLD, STATE_NEW, "state: поле az для анализа снимка")
     if ANALYZE_MARKER in out:
         print("  = analyzeMock: уже заменён")
     else:

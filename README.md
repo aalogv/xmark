@@ -120,9 +120,14 @@ scripts/regru-dns.sh check             # dig + HTTPS
 
 ## Блок «Анализ снимка» на лендинге
 
-Живой: файл уходит в API демо-стенда `https://xmark2.oplot-it.ru:8080` (`POST /api/decode` → `jobId`, поллинг `GET /api/decode/{jobId}`), режимы `screen` / `photo`. Код — шаг 13 в `scripts/patch-landing.py`.
+Живой демо-цикл на API стенда `https://xmark2.oplot-it.ru:8080`, две вкладки:
 
-Чтобы браузер мог читать ответы с другого origin, на демо-сервере нужен CORS. Сейчас заголовков `Access-Control-Allow-Origin` нет, и страница показывает «Сервис анализа недоступен». Вариант для Caddy перед Kestrel:
+- **Закодировать** — галерея образцов (`GET /api/samples`, картинки `GET /api/samples/{id}`), метка (32 бита: число или 0x-hex), сила 2–5, `POST /api/encode` JSON `{sample, payload, delta}` → PNG. Результат открывается на весь экран 1:1 (ширина = naturalWidth / devicePixelRatio), чтобы сделать скриншот или фото.
+- **Декодировать** — файл уходит в `POST /api/decode` (multipart `file`, `mode` = `screen` / `photo`) → `jobId`, поллинг `GET /api/decode/{jobId}` до `done`.
+
+Код — шаг 13 в `scripts/patch-landing.py` (маркер версии `ANALYZE_V2`; смена маркера перевыпускает блок при следующем запуске). Список образцов захардкожен как fallback и обновляется с сервера, если CORS разрешён.
+
+Браузер читает ответы с другого origin только при CORS. На стенде он включён для `https://xmark.oplot-it.ru` (проверено 27.09.2026: `access-control-allow-origin` в ответе `/api/encode`). С localhost блок покажет «Сервис … недоступен» — это ожидаемо, origin другой; картинки галереи грузятся всегда, `<img>` CORS не требует. Если понадобится добавить origin (например, localhost для отладки) — вариант для Caddy перед Kestrel:
 
 ```
 xmark2.oplot-it.ru:8080 {
