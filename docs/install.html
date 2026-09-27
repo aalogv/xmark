@@ -184,7 +184,7 @@ sudo systemctl enable --now xmark-agent</code></pre>
   <ul>
     <li><strong>Сервер:</strong> установите новый пакет поверх (<code>apt install ./xmark-server_0.93.y_amd64.deb</code> / <code>dnf upgrade</code>) или обновите образы (<code>docker compose pull &amp;&amp; docker compose up -d</code>). Миграции БД выполняются автоматически; перед обновлением сделайте резервную копию (см. <a href="admin-guide.html#backup">руководство администратора</a>).</li>
     <li><strong>Агенты:</strong> из панели (<strong>Рабочие станции → Обновить агент</strong>) или теми же средствами распространения, что и при установке. Новая версия MSI обновляет предыдущую без удаления.</li>
-    <li><strong>Удаление агента:</strong> Windows — «Программы и компоненты» или <code>msiexec /x xmark-agent-0.93.x-x64.msi /qn</code>; Linux — <code>apt remove xmark-agent</code> / <code>dnf remove xmark-agent</code>. Удаление требует прав администратора; если в политике включена защита от удаления, необходимо указать код деинсталляции из панели: <code>UNINSTALL_CODE=&lt;код&gt;</code>.</li>
+    <li><strong>Удаление агента:</strong> Windows — «Программы и компоненты» или <code>msiexec /x xmark-agent-0.93.x-x64.msi /qn</code>; Linux — <code>apt remove xmark-agent</code> / <code>dnf remove xmark-agent</code>. Удаление требует прав администратора; если в политике включён код деинсталляции, его необходимо указать из панели: <code>UNINSTALL_CODE=&lt;код&gt;</code>.</li>
   </ul>
 
   <h2 id="support">11. Контакты технических специалистов</h2>
