@@ -24,6 +24,7 @@ docs/admin-guide.html руководство администратора
 docs/lifecycle.html   процессы жизненного цикла и регламент техподдержки
 docs/pdf/             PDF-версии документов (генерируются)
 assets/site.css       общие стили статических страниц
+assets/oplot-xmark-presentation.pdf  презентация продукта (ссылки: hero и футер лендинга, docs/, company.html)
 scripts/patch-landing.py  точечные правки лендинга (идемпотентен)
 scripts/build-pdf.sh      генерация PDF через headless Chrome
 scripts/regru-dns.sh      DNS у reg.ru через REG.API v2 (list / switch-to-pages / check)

@@ -16,7 +16,7 @@
  11. hero-стат: «минимальная нагрузка» вместо «< 1 % CPU»;
  12. отрасли: «ОПК» вместо «Оборонки»;
  13. блок «Анализ снимка»: демо кодирования и декодирования на API стенда (xmark2.oplot-it.ru:8080);
- 14. формулировки под ограничения ФСТЭК: «малозаметная» (не «невидимая»), источник копии (не «утечка»), без DLP.
+ 14. формулировки под ограничения ФСТЭК: «малозаметная» (не «невидимая»), источник копии (не «утечка»), без DLP;\n 15. ссылки на презентацию (assets/oplot-xmark-presentation.pdf) в hero и футере.
 
 Скрипт идемпотентен: если правка уже применена — пропускает её. Если целевой фрагмент
 не найден ровно один раз (и правка ещё не применена) — падает, ничего не записав.
@@ -123,6 +123,7 @@ FOOTER_NEW = esc('''<footer style="background: #F5F5F7; border-top: 1px solid rg
           <a href="docs/" style="color: #48484C" style-hover="color: #2C67F2">Документация</a>
           <a href="price.html" style="color: #48484C" style-hover="color: #2C67F2">Стоимость и порядок её определения</a>
           <a href="company.html" style="color: #48484C" style-hover="color: #2C67F2">Сведения о правообладателе</a>
+          <a href="assets/oplot-xmark-presentation.pdf" download style="color: #48484C" style-hover="color: #2C67F2">Презентация продукта (PDF, 0,6 МБ)</a>
           <a href="privacy.html" style="color: #48484C" style-hover="color: #2C67F2">Политика обработки ПДн</a>
         </div>
         <div style="display: flex; flex-direction: column; gap: 8px">
@@ -406,6 +407,13 @@ WORDING = [
 HEAD_TITLE_OLD = "<title>Оплот.X-Mark — невидимая маркировка экрана</title>"
 HEAD_TITLE_NEW = "<title>Оплот.X-Mark — малозаметная маркировка цифрового контента</title>"
 
+# ---------- 15. презентация (PDF) ----------
+PRES_HREF = "assets/oplot-xmark-presentation.pdf"
+PRES_HERO_OLD = esc('<a href="https://xmark2.oplot-it.ru:8080" target="_blank" rel="noopener" style="white-space: nowrap">Открыть демо ›</a>\n')
+PRES_HERO_NEW = PRES_HERO_OLD + esc('    <a href="' + PRES_HREF + '" download style="white-space: nowrap">Презентация (PDF) ↓</a>\n')
+PRES_FOOTER_OLD = esc('          <a href="privacy.html" style="color: #48484C" style-hover="color: #2C67F2">Политика обработки ПДн</a>\n')
+PRES_FOOTER_NEW = esc('          <a href="' + PRES_HREF + '" download style="color: #48484C" style-hover="color: #2C67F2">Презентация продукта (PDF, 0,6 МБ)</a>\n') + PRES_FOOTER_OLD
+
 def replace_once(src: str, old: str, new: str, name: str, done_marker=None) -> str:
     markers = done_marker if isinstance(done_marker, tuple) else ((done_marker,) if done_marker else ())
     if any(m in src for m in markers):
@@ -500,6 +508,10 @@ def main() -> None:
     for old, new, name in WORDING:
         out = replace_once(out, old, new, "wording: " + name, done_marker=new)
     out = replace_once(out, HEAD_TITLE_OLD, HEAD_TITLE_NEW, "wording: title в <head>", done_marker=HEAD_TITLE_NEW)
+
+    # 15. презентация: ссылка в hero и в футере
+    out = replace_once(out, PRES_HERO_OLD, PRES_HERO_NEW, "hero: ссылка на презентацию", done_marker=PRES_HERO_NEW)
+    out = replace_once(out, PRES_FOOTER_OLD, PRES_FOOTER_NEW, "footer: ссылка на презентацию", done_marker=PRES_FOOTER_NEW)
 
     if out == src:
         print("Изменений нет.")
