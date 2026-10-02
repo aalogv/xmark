@@ -16,7 +16,7 @@
  11. hero-стат: «минимальная нагрузка» вместо «< 1 % CPU»;
  12. отрасли: «ОПК» вместо «Оборонки»;
  13. блок «Анализ снимка»: демо кодирования и декодирования на API стенда (xmark2.oplot-it.ru:8080);
- 14. формулировки под ограничения ФСТЭК: «малозаметная» (не «невидимая»), источник копии (не «утечка»), без DLP;\n 15. ссылки на презентацию (assets/oplot-xmark-presentation.pdf) в hero и футере;\n 16. «Открыть демо» в hero — якорь на демо-блок #panel;\n 17. подпись кнопки — «Демо ›».
+ 14. формулировки под ограничения ФСТЭК: «малозаметная» (не «невидимая»), источник копии (не «утечка»), без DLP;\n 15. ссылки на презентацию (assets/oplot-xmark-presentation.pdf) в hero и футере;\n 16. «Открыть демо» в hero — якорь на демо-блок #panel;\n 17. подпись кнопки — «Демо ›»;\n 18. форма заявки отправляет данные в функцию Яндекс Облака (LEAD_URL=... python3 scripts/patch-landing.py).
 
 Скрипт идемпотентен: если правка уже применена — пропускает её. Если целевой фрагмент
 не найден ровно один раз (и правка ещё не применена) — падает, ничего не записав.
@@ -422,6 +422,38 @@ DEMO_HERO_NEW = esc('<a href="#panel" style="white-space: nowrap">Открыть
 DEMO_LABEL_OLD = esc('<a href="#panel" style="white-space: nowrap">Открыть демо ›</a>')
 DEMO_LABEL_NEW = esc('<a href="#panel" style="white-space: nowrap">Демо ›</a>')
 
+# ---------- 18. форма заявки: реальная отправка в функцию Яндекс Облака (данные остаются в РФ) ----------
+LEAD_URL = __import__("os").environ.get("LEAD_URL", "")  # https://functions.yandexcloud.net/<id>, задаётся при запуске
+FORM_STATE_OLD = "state = { sent: false, name: '', company: '', phone: '', seats: '', comment: '', "
+FORM_STATE_NEW = "state = { sent: false, name: '', company: '', phone: '', seats: '', comment: '', website: '', consent: false, busy: false, formError: '', "
+FORM_CONSENT_OLD = esc('<div style="font-size: 12px; color: #86868B; margin-top: 14px; text-align: center">Нажимая кнопку, вы соглашаетесь с <a href="privacy.html" style="color: inherit; text-decoration: underline">обработкой персональных данных</a></div>')
+FORM_CONSENT_NEW = esc('<label style="display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: #48484C; margin-top: 14px; line-height: 1.4; cursor: pointer"><input type="checkbox" sc-camel-on-change="{{ setConsent }}" style="margin-top: 2px; flex-shrink: 0"><span>Согласен на обработку персональных данных в соответствии с <a href="privacy.html" style="color: inherit; text-decoration: underline">политикой</a>. Данные обрабатываются и хранятся в РФ.</span></label>')
+FORM_BTN_OLD = esc('<button sc-camel-on-click="{{ submitForm }}"')
+FORM_BTN_NEW = esc('<input aria-hidden="true" tabindex="-1" autocomplete="off" placeholder="website" sc-camel-on-change="{{ setWebsite }}" style="position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0">\n      <div style="color: #D70015; font-size: 14px; margin-bottom: 10px; text-align: center">{{ formError }}</div>\n      <button sc-camel-on-click="{{ submitForm }}"')
+FORM_LABEL_OLD = esc('>Отправить заявку</button>')
+FORM_LABEL_NEW = esc('>{{ submitLabel }}</button>')
+FORM_SUBMIT_OLD = "      submitForm: () => this.setState({ sent: true }),"
+def form_submit_new(url):
+    return ("      setWebsite: setField('website'), setConsent: (ev) => this.setState({ consent: !!ev.target.checked }),\n"
+            "      formError: this.state.formError,\n"
+            "      submitLabel: this.state.busy ? 'Отправляем…' : 'Отправить заявку',\n"
+            "      submitForm: async () => {\n"
+            "        const s = this.state;\n"
+            "        if (s.busy) return;\n"
+            "        if (!s.name.trim() || !s.phone.trim()) { this.setState({ formError: 'Укажите имя и телефон' }); return; }\n"
+            "        if (!s.consent) { this.setState({ formError: 'Нужно согласие на обработку персональных данных' }); return; }\n"
+            "        this.setState({ busy: true, formError: '' });\n"
+            "        try {\n"
+            "          const r = await fetch('" + url + "', { method: 'POST', headers: { 'Content-Type': 'application/json' },\n"
+            "            body: JSON.stringify({ name: s.name, company: s.company, phone: s.phone, seats: s.seats, comment: s.comment, website: s.website, consent: true }) });\n"
+            "          const j = await r.json().catch(() => ({}));\n"
+            "          if (!r.ok || !j.ok) throw new Error(j.error || 'Ошибка отправки');\n"
+            "          this.setState({ busy: false, sent: true });\n"
+            "        } catch (err) {\n"
+            "          this.setState({ busy: false, formError: (err && err.message && err.message !== 'Failed to fetch') ? err.message : 'Не удалось отправить. Напишите на office@oplot-it.ru или позвоните +7 (499) 348-11-07.' });\n"
+            "        }\n"
+            "      },")
+
 def replace_once(src: str, old: str, new: str, name: str, done_marker=None) -> str:
     markers = done_marker if isinstance(done_marker, tuple) else ((done_marker,) if done_marker else ())
     if any(m in src for m in markers):
@@ -467,7 +499,7 @@ def main() -> None:
     out = replace_once(out, CONTACT_P_END, CONTACT_P_END + CONTACT_LINK, "contact: ссылка на price.html", done_marker=CONTACT_LINK)
 
     # 6. consent
-    out = replace_once(out, CONSENT_OLD, CONSENT_NEW, "form: ссылка на privacy.html", done_marker=CONSENT_NEW)
+    out = replace_once(out, CONSENT_OLD, CONSENT_NEW, "form: ссылка на privacy.html", done_marker=(CONSENT_NEW, esc("{{ setConsent }}")))
 
     # 7. список ОС: RHEL — иностранная ОС, упоминание вредит экспертизе; Альт — из реестра
     out = replace_once(out, OS_OLD, OS_NEW, "deploy: список Linux без RHEL, с Альт", done_marker=OS_NEW)
@@ -496,7 +528,7 @@ def main() -> None:
     out = replace_once(out, OPK_OLD, OPK_NEW, "отрасли: ОПК", done_marker=OPK_NEW)
 
     # 13. блок «Анализ снимка»: демо кодирования и декодирования на API стенда (вместо статичного макета)
-    if STATE_NEW in out:
+    if "az: { tab: 'encode'" in out:
         print("  = state: поле az: уже применено")
     elif STATE_V1 in out:
         out = replace_once(out, STATE_V1, STATE_NEW, "state: поле az (обновление с v1)")
@@ -526,6 +558,16 @@ def main() -> None:
 
     # 17. hero: короткая подпись «Демо ›»
     out = replace_once(out, DEMO_LABEL_OLD, DEMO_LABEL_NEW, "hero: подпись «Демо»", done_marker=DEMO_LABEL_NEW)
+
+    # 18. форма заявки -> функция Яндекс Облака (только если задан LEAD_URL)
+    if LEAD_URL:
+        out = replace_once(out, FORM_STATE_OLD, FORM_STATE_NEW, "form: состояние", done_marker="consent: false, busy: false")
+        out = replace_once(out, FORM_CONSENT_OLD, FORM_CONSENT_NEW, "form: галочка согласия", done_marker=FORM_CONSENT_NEW)
+        out = replace_once(out, FORM_BTN_OLD, FORM_BTN_NEW, "form: ловушка и ошибка", done_marker=esc('{{ formError }}</div>'))
+        out = replace_once(out, FORM_LABEL_OLD, FORM_LABEL_NEW, "form: подпись кнопки", done_marker=FORM_LABEL_NEW)
+        out = replace_once(out, FORM_SUBMIT_OLD, esc(form_submit_new(LEAD_URL)), "form: отправка в " + LEAD_URL, done_marker="submitLabel: this.state.busy")
+    else:
+        print("  ~ form: LEAD_URL не задан — шаг 18 пропущен")
 
     if out == src:
         print("Изменений нет.")
