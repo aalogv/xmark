@@ -197,6 +197,17 @@ python3 scripts/dns_migrate.py switch   # прописать NS Selectel у ре
 - Деплой вручную: `vercel deploy --prod` из корня репозитория. Автодеплой по push заработает после того, как приложению Vercel в GitHub дадут доступ к репозиторию `aalogv/xmark` (github.com/settings/installations → Vercel → Repository access), затем `vercel git connect`.
 - DNS в reg.ru: запись `xmark` — **A 76.76.21.21** (вместо CNAME на `aalogv.github.io`).
 
+## Форма заявки (данные остаются в РФ)
+
+Браузер посетителя отправляет заявку напрямую в функцию Yandex Cloud Functions (ru-central1); Vercel отдаёт только статику и заявок не видит.
+
+- Облако `cloud-aalogv`, каталог `xmark`, функция `xmark-lead`: https://functions.yandexcloud.net/d4er9hi11j9cf6s7rmcl
+- Заявки — JSON-файлы в приватном бакете `oplot-xmark-leads` (`leads/ГГГГ/ММ/ДД/<id>.json`), вместе с отметкой о согласии на обработку ПДн.
+- Просмотр: консоль Yandex Cloud → Object Storage → `oplot-xmark-leads`, или `yc storage s3api list-objects --bucket oplot-xmark-leads`.
+- Письма на `office@`: создать `~/.config/xmark/lead.env` (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, NOTIFY_TO) и перезапустить `functions/lead/deploy.sh`.
+- Код: `functions/lead/index.py`, развёртывание: `functions/lead/deploy.sh` (идемпотентно). Форма на лендинге — шаг 18 `patch-landing.py`, запускать с `LEAD_URL=https://functions.yandexcloud.net/d4er9hi11j9cf6s7rmcl`.
+- Бесплатный лимит Cloud Functions — 1 млн вызовов в месяц; Object Storage — копейки за мегабайты.
+
 ## Вне репозитория
 
 - На корпоративном сайте oplot-it.ru также должны быть реквизиты по приказу № 511 (для аккредитации).
