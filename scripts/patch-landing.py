@@ -16,7 +16,7 @@
  11. hero-стат: «минимальная нагрузка» вместо «< 1 % CPU»;
  12. отрасли: «ОПК» вместо «Оборонки»;
  13. блок «Анализ снимка»: демо кодирования и декодирования на API стенда (xmark2.oplot-it.ru:8080);
- 14. формулировки под ограничения ФСТЭК: «малозаметная» (не «невидимая»), источник копии (не «утечка»), без DLP;\n 15. ссылки на презентацию (assets/oplot-xmark-presentation.pdf) в hero и футере.
+ 14. формулировки под ограничения ФСТЭК: «малозаметная» (не «невидимая»), источник копии (не «утечка»), без DLP;\n 15. ссылки на презентацию (assets/oplot-xmark-presentation.pdf) в hero и футере;\n 16. «Открыть демо» в hero — якорь на демо-блок #panel.
 
 Скрипт идемпотентен: если правка уже применена — пропускает её. Если целевой фрагмент
 не найден ровно один раз (и правка ещё не применена) — падает, ничего не записав.
@@ -414,6 +414,10 @@ PRES_HERO_NEW = PRES_HERO_OLD + esc('    <a href="' + PRES_HREF + '" download st
 PRES_FOOTER_OLD = esc('          <a href="privacy.html" style="color: #48484C" style-hover="color: #2C67F2">Политика обработки ПДн</a>\n')
 PRES_FOOTER_NEW = esc('          <a href="' + PRES_HREF + '" download style="color: #48484C" style-hover="color: #2C67F2">Презентация продукта (PDF, 0,6 МБ)</a>\n') + PRES_FOOTER_OLD
 
+# ---------- 16. кнопка «Открыть демо» в hero ведёт на демо-блок на этой же странице ----------
+DEMO_HERO_OLD = esc('<a href="https://xmark2.oplot-it.ru:8080" target="_blank" rel="noopener" style="white-space: nowrap">Открыть демо ›</a>')
+DEMO_HERO_NEW = esc('<a href="#panel" style="white-space: nowrap">Открыть демо ›</a>')
+
 def replace_once(src: str, old: str, new: str, name: str, done_marker=None) -> str:
     markers = done_marker if isinstance(done_marker, tuple) else ((done_marker,) if done_marker else ())
     if any(m in src for m in markers):
@@ -510,8 +514,11 @@ def main() -> None:
     out = replace_once(out, HEAD_TITLE_OLD, HEAD_TITLE_NEW, "wording: title в <head>", done_marker=HEAD_TITLE_NEW)
 
     # 15. презентация: ссылка в hero и в футере
-    out = replace_once(out, PRES_HERO_OLD, PRES_HERO_NEW, "hero: ссылка на презентацию", done_marker=PRES_HERO_NEW)
+    out = replace_once(out, PRES_HERO_OLD, PRES_HERO_NEW, "hero: ссылка на презентацию", done_marker=esc('Презентация (PDF) ↓</a>'))
     out = replace_once(out, PRES_FOOTER_OLD, PRES_FOOTER_NEW, "footer: ссылка на презентацию", done_marker=PRES_FOOTER_NEW)
+
+    # 16. hero: «Открыть демо» — якорь на демо-блок (#panel), а не внешний стенд
+    out = replace_once(out, DEMO_HERO_OLD, DEMO_HERO_NEW, "hero: демо — якорь #panel", done_marker=DEMO_HERO_NEW)
 
     if out == src:
         print("Изменений нет.")
