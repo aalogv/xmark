@@ -16,7 +16,7 @@
  11. hero-стат: «минимальная нагрузка» вместо «< 1 % CPU»;
  12. отрасли: «ОПК» вместо «Оборонки»;
  13. блок «Анализ снимка»: демо кодирования и декодирования на API стенда (xmark2.oplot-it.ru:8080);
- 14. формулировки под ограничения ФСТЭК: «малозаметная» (не «невидимая»), источник копии (не «утечка»), без DLP;\n 15. ссылки на презентацию (assets/oplot-xmark-presentation.pdf) в hero и футере;\n 16. «Открыть демо» в hero — якорь на демо-блок #panel.
+ 14. формулировки под ограничения ФСТЭК: «малозаметная» (не «невидимая»), источник копии (не «утечка»), без DLP;\n 15. ссылки на презентацию (assets/oplot-xmark-presentation.pdf) в hero и футере;\n 16. «Открыть демо» в hero — якорь на демо-блок #panel;\n 17. подпись кнопки — «Демо ›».
 
 Скрипт идемпотентен: если правка уже применена — пропускает её. Если целевой фрагмент
 не найден ровно один раз (и правка ещё не применена) — падает, ничего не записав.
@@ -418,6 +418,10 @@ PRES_FOOTER_NEW = esc('          <a href="' + PRES_HREF + '" download style="col
 DEMO_HERO_OLD = esc('<a href="https://xmark2.oplot-it.ru:8080" target="_blank" rel="noopener" style="white-space: nowrap">Открыть демо ›</a>')
 DEMO_HERO_NEW = esc('<a href="#panel" style="white-space: nowrap">Открыть демо ›</a>')
 
+# ---------- 17. hero: подпись кнопки демо «Демо ›» ----------
+DEMO_LABEL_OLD = esc('<a href="#panel" style="white-space: nowrap">Открыть демо ›</a>')
+DEMO_LABEL_NEW = esc('<a href="#panel" style="white-space: nowrap">Демо ›</a>')
+
 def replace_once(src: str, old: str, new: str, name: str, done_marker=None) -> str:
     markers = done_marker if isinstance(done_marker, tuple) else ((done_marker,) if done_marker else ())
     if any(m in src for m in markers):
@@ -518,7 +522,10 @@ def main() -> None:
     out = replace_once(out, PRES_FOOTER_OLD, PRES_FOOTER_NEW, "footer: ссылка на презентацию", done_marker=PRES_FOOTER_NEW)
 
     # 16. hero: «Открыть демо» — якорь на демо-блок (#panel), а не внешний стенд
-    out = replace_once(out, DEMO_HERO_OLD, DEMO_HERO_NEW, "hero: демо — якорь #panel", done_marker=DEMO_HERO_NEW)
+    out = replace_once(out, DEMO_HERO_OLD, DEMO_HERO_NEW, "hero: демо — якорь #panel", done_marker=(DEMO_HERO_NEW, DEMO_LABEL_NEW))
+
+    # 17. hero: короткая подпись «Демо ›»
+    out = replace_once(out, DEMO_LABEL_OLD, DEMO_LABEL_NEW, "hero: подпись «Демо»", done_marker=DEMO_LABEL_NEW)
 
     if out == src:
         print("Изменений нет.")
