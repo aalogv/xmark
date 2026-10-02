@@ -188,6 +188,15 @@ python3 scripts/dns_migrate.py switch   # прописать NS Selectel у ре
 
 После смены NS: 10–60 минут на распространение, затем GitHub → Settings → Pages → «Check again», верификация домена и Enforce HTTPS.
 
+## Хостинг на Vercel
+
+Сайт развёрнут на Vercel (проект `xmark`, команда `alexander-logvinenco-s-projects`): GitHub Pages не может выпустить HTTPS-сертификат для `xmark.oplot-it.ru` — его DNS-проверка не получает ответ от NS reg.ru, а Let's Encrypt через те же NS работает (см. сертификат `xmark2.oplot-it.ru`).
+
+- Тестовый адрес: https://xmark-brown.vercel.app
+- `vercel.json` — `trailingSlash`, PDF отдаётся как вложение; `.vercelignore` — в деплой не попадают `scripts/`, `README.md`, `CNAME`.
+- Деплой вручную: `vercel deploy --prod` из корня репозитория. Автодеплой по push заработает после того, как приложению Vercel в GitHub дадут доступ к репозиторию `aalogv/xmark` (github.com/settings/installations → Vercel → Repository access), затем `vercel git connect`.
+- DNS в reg.ru: запись `xmark` — **A 76.76.21.21** (вместо CNAME на `aalogv.github.io`).
+
 ## Вне репозитория
 
 - На корпоративном сайте oplot-it.ru также должны быть реквизиты по приказу № 511 (для аккредитации).
